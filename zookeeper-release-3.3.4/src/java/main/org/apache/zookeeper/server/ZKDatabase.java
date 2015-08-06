@@ -207,6 +207,13 @@ public class ZKDatabase {
      * @return the last valid zxid on disk
      * @throws IOException
      */
+    /**
+     * 将数据库从磁盘加载到内存中,并且添加事务到内存中的committedlog
+     * @date 2015年8月6日 上午10:33:36
+     * 
+     * @return
+     * @throws IOException
+     */
     public long loadDataBase() throws IOException {
         PlayBackListener listener=new PlayBackListener(){
             public void onTxnLoaded(TxnHeader hdr,Record txn){

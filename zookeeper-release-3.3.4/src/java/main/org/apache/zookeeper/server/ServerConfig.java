@@ -57,13 +57,13 @@ public class ServerConfig {
                     + Arrays.toString(args));
         }
 
-        clientPortAddress = new InetSocketAddress(Integer.parseInt(args[0]));
-        dataDir = args[1];
+        clientPortAddress = new InetSocketAddress(Integer.parseInt(args[0]));//服务器监听端口
+        dataDir = args[1];//内存数据库保存快照路径
         dataLogDir = dataDir;
-        if (args.length == 3) {
+        if (args.length == 3) {//心跳时间
             tickTime = Integer.parseInt(args[2]);
         }
-        if (args.length == 4) {
+        if (args.length == 4) {//最大并发客户端数
             maxClientCnxns = Integer.parseInt(args[3]);
         }
     }

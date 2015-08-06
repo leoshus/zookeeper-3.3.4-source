@@ -46,7 +46,7 @@ public class QuorumPeerConfig {
     protected String dataDir;
     protected String dataLogDir;
     protected int tickTime = ZooKeeperServer.DEFAULT_TICK_TIME;
-    protected int maxClientCnxns = 10;
+    protected int maxClientCnxns = 10;//最大并发客户端数 默认为10  若为0 表示不加限制  防止DOS
     /** defaults to -1 if not set explicitly */
     protected int minSessionTimeout = -1;
     /** defaults to -1 if not set explicitly */
@@ -56,18 +56,18 @@ public class QuorumPeerConfig {
     protected int syncLimit;
     protected int electionAlg = 3;
     protected int electionPort = 2182;
-    protected final HashMap<Long,QuorumServer> servers =
+    protected final HashMap<Long,QuorumServer> servers = //所有服务器的集合 包含obervers
         new HashMap<Long, QuorumServer>();
-    protected final HashMap<Long,QuorumServer> observers =
+    protected final HashMap<Long,QuorumServer> observers = //
         new HashMap<Long, QuorumServer>();
 
-    protected long serverId;
-    protected HashMap<Long, Long> serverWeight = new HashMap<Long, Long>();
-    protected HashMap<Long, Long> serverGroup = new HashMap<Long, Long>();
+    protected long serverId;//当前服务器的sid值
+    protected HashMap<Long, Long> serverWeight = new HashMap<Long, Long>();//权重值 key=sid value=weight
+    protected HashMap<Long, Long> serverGroup = new HashMap<Long, Long>();//分组情况 key=sid value=groupid
     protected int numGroups = 0;
     protected QuorumVerifier quorumVerifier;
 
-    protected LearnerType peerType = LearnerType.PARTICIPANT;
+    protected LearnerType peerType = LearnerType.PARTICIPANT;//默认节点的类型
 
     @SuppressWarnings("serial")
     public static class ConfigException extends Exception {
@@ -103,7 +103,7 @@ public class QuorumPeerConfig {
                 in.close();
             }
 
-            parseProperties(cfg);
+            parseProperties(cfg);//具体配置文件的解析工作
         } catch (IOException e) {
             throw new ConfigException("Error processing " + path, e);
         } catch (IllegalArgumentException e) {
@@ -124,29 +124,29 @@ public class QuorumPeerConfig {
         for (Entry<Object, Object> entry : zkProp.entrySet()) {
             String key = entry.getKey().toString().trim();
             String value = entry.getValue().toString().trim();
-            if (key.equals("dataDir")) {
+            if (key.equals("dataDir")) {//数据文件保存路径 用于存放内存数据库快照的文件路径 同时用于集群的myid文件也位于此路径下
                 dataDir = value;
-            } else if (key.equals("dataLogDir")) {
+            } else if (key.equals("dataLogDir")) {//日志文件保存路径
                 dataLogDir = value;
-            } else if (key.equals("clientPort")) {
+            } else if (key.equals("clientPort")) {//服务监听端口
                 clientPort = Integer.parseInt(value);
-            } else if (key.equals("clientPortAddress")) {
+            } else if (key.equals("clientPortAddress")) {//
                 clientPortAddress = value.trim();
-            } else if (key.equals("tickTime")) {
+            } else if (key.equals("tickTime")) {//心跳时间(单位:毫秒) 默认3000毫秒即3秒  为了确保连接存在,最新超时时间为2个心跳时间
                 tickTime = Integer.parseInt(value);
-            } else if (key.equals("maxClientCnxns")) {
+            } else if (key.equals("maxClientCnxns")) {//最大并发客户端数,用于防止DOS 默认是10 若设置为0 表示不加限制
                 maxClientCnxns = Integer.parseInt(value);
-            } else if (key.equals("minSessionTimeout")) {
+            } else if (key.equals("minSessionTimeout")) {//最小客户端session超时时间, 默认是2个ticktime 单位:毫秒
                 minSessionTimeout = Integer.parseInt(value);
-            } else if (key.equals("maxSessionTimeout")) {
+            } else if (key.equals("maxSessionTimeout")) {//最大客户端session超时时间,默认是20个ticktime 单位:毫秒
                 maxSessionTimeout = Integer.parseInt(value);
-            } else if (key.equals("initLimit")) {
+            } else if (key.equals("initLimit")) {//集群参数---多少个ticktime内允许其他server连接并初始化数据，如果zookeeper管理的数据较大,则相应增大这个值
                 initLimit = Integer.parseInt(value);
-            } else if (key.equals("syncLimit")) {
+            } else if (key.equals("syncLimit")) {//集群参数---多少个ticktime内允许follower同步,如果follower落后太多则会被丢弃
                 syncLimit = Integer.parseInt(value);
-            } else if (key.equals("electionAlg")) {
+            } else if (key.equals("electionAlg")) {//集群参数---用于选举实现的参数 0:表示以原始的基于UDP的方式协作,1:表示不进行用户验证的基于UDP的快速选举 2:表示进行用户验证的基于UDP的快速选举 3:表示基于TCP的快速选举 默认为3
                 electionAlg = Integer.parseInt(value);
-            } else if (key.equals("peerType")) {
+            } else if (key.equals("peerType")) {//节点类型  观察者 还是 follower
                 if (value.toLowerCase().equals("observer")) {
                     peerType = LearnerType.OBSERVER;
                 } else if (value.toLowerCase().equals("participant")) {
@@ -155,9 +155,9 @@ public class QuorumPeerConfig {
                 {
                     throw new ConfigException("Unrecognised peertype: " + value);
                 }
-            } else if (key.startsWith("server.")) {
+            } else if (key.startsWith("server.")) {// 集群参数---配置集群里的主机信息  server.[myid]=[主机IP/hostname]:[同步端口]:[选举端口]:observer
                 int dot = key.indexOf('.');
-                long sid = Long.parseLong(key.substring(dot + 1));
+                long sid = Long.parseLong(key.substring(dot + 1));//dataDir路径下myid中的值
                 String parts[] = value.split(":");
                 if ((parts.length != 2) && (parts.length != 3) && (parts.length !=4)) {
                     LOG.error(value
@@ -165,23 +165,23 @@ public class QuorumPeerConfig {
                        " or host:port:port:type");
                 }
                 InetSocketAddress addr = new InetSocketAddress(parts[0],
-                        Integer.parseInt(parts[1]));
-                if (parts.length == 2) {
+                        Integer.parseInt(parts[1]));//主机IP/hostname + 与leader通信的端口
+                if (parts.length == 2) {//长度为2的情况 server.[myid]=[主机IP/hostname]:[同步端口]
                     servers.put(Long.valueOf(sid), new QuorumServer(sid, addr));
-                } else if (parts.length == 3) {
+                } else if (parts.length == 3) {//长度为3的情况server.[myid]=[主机IP/hostname]:[同步端口]:[选举端口]
                     InetSocketAddress electionAddr = new InetSocketAddress(
-                            parts[0], Integer.parseInt(parts[2]));
+                            parts[0], Integer.parseInt(parts[2]));//主机IP/hostname + 选举端口
                     servers.put(Long.valueOf(sid), new QuorumServer(sid, addr,
                             electionAddr));
-                } else if (parts.length == 4) {
+                } else if (parts.length == 4) {//长度为4 的情况server.[myid]=[主机IP/hostname]:[同步端口]:[选举端口]:observer
                     InetSocketAddress electionAddr = new InetSocketAddress(
                             parts[0], Integer.parseInt(parts[2]));
-                    LearnerType type = LearnerType.PARTICIPANT;
-                    if (parts[3].toLowerCase().equals("observer")) {
+                    LearnerType type = LearnerType.PARTICIPANT;//节点类型默认值为PARTICIPANT
+                    if (parts[3].toLowerCase().equals("observer")) {//节点类型为 observer
                         type = LearnerType.OBSERVER;
                         observers.put(Long.valueOf(sid), new QuorumServer(sid, addr,
                                 electionAddr,type));
-                    } else if (parts[3].toLowerCase().equals("participant")) {
+                    } else if (parts[3].toLowerCase().equals("participant")) {//节点类型为participant
                         type = LearnerType.PARTICIPANT;
                         servers.put(Long.valueOf(sid), new QuorumServer(sid, addr,
                                 electionAddr,type));
@@ -189,7 +189,7 @@ public class QuorumPeerConfig {
                         throw new ConfigException("Unrecognised peertype: " + value);
                     }
                 }
-            } else if (key.startsWith("group")) {
+            } else if (key.startsWith("group")) {//集群参数---机器分组 例如：group.1=1:2:3 group.2=4:5:6  weight.1=1 weight.2=1 weight.3=1 weight.4=1 weight.5=1 weight.6=1
                 int dot = key.indexOf('.');
                 long gid = Long.parseLong(key.substring(dot + 1));
 
@@ -204,7 +204,7 @@ public class QuorumPeerConfig {
                         serverGroup.put(sid, gid);
                 }
 
-            } else if(key.startsWith("weight")) {
+            } else if(key.startsWith("weight")) {//集群参数---机器权重
                 int dot = key.indexOf('.');
                 long sid = Long.parseLong(key.substring(dot + 1));
                 serverWeight.put(sid, Long.parseLong(value));
@@ -259,10 +259,10 @@ public class QuorumPeerConfig {
             LOG.error("Invalid configuration, only one server specified (ignoring)");
             servers.clear();
         } else if (servers.size() > 1) {
-            if (servers.size() == 2) {
+            if (servers.size() == 2) {//至少3台机器组成集群
                 LOG.warn("No server failure will be tolerated. " +
                     "You need at least 3 servers.");
-            } else if (servers.size() % 2 == 0) {
+            } else if (servers.size() % 2 == 0) {//集群必须是奇数台机器
                 LOG.warn("Non-optimial configuration, consider an odd number of servers.");
             }
             if (initLimit == 0) {
@@ -273,7 +273,7 @@ public class QuorumPeerConfig {
             }
             /*
              * If using FLE, then every server requires a separate election
-             * port.
+             * port. 如果是用快速leader选举 每台服务器要求有一个独立的选举端口 即每台服务器需要有一个electionAddr
              */
             if (electionAlg != 0) {
                 for (QuorumServer s : servers.values()) {
@@ -287,10 +287,10 @@ public class QuorumPeerConfig {
              * Default of quorum config is majority
              */
             if(serverGroup.size() > 0){
-                if(servers.size() != serverGroup.size())
+                if(servers.size() != serverGroup.size())//确保每台服务器都被分组
                     throw new ConfigException("Every server must be in exactly one group");
                 /*
-                 * The deafult weight of a server is 1
+                 * The deafult weight of a server is 1  默认服务器的权重都是1
                  */
                 for(QuorumServer s : servers.values()){
                     if(!serverWeight.containsKey(s.id))
@@ -298,6 +298,7 @@ public class QuorumPeerConfig {
                 }
 
                 /*
+                 * 设置quorumVerifier为QuorumHierarchical
                  * Set the quorumVerifier to be QuorumHierarchical
                  */
                 quorumVerifier = new QuorumHierarchical(numGroups,
@@ -306,7 +307,7 @@ public class QuorumPeerConfig {
                 /*
                  * The default QuorumVerifier is QuorumMaj
                  */
-
+            	//默认QuorumVerifier为QuorumMaj
                 LOG.info("Defaulting to majority quorums");
                 quorumVerifier = new QuorumMaj(servers.size());
             }
@@ -314,7 +315,7 @@ public class QuorumPeerConfig {
             // Now add observers to servers, once the quorums have been
             // figured out
             servers.putAll(observers);
-    
+            //读取dataDir路径下的myid文件 确定当前服务器的sid值 即serverId
             File myIdFile = new File(dataDir, "myid");
             if (!myIdFile.exists()) {
                 throw new IllegalArgumentException(myIdFile.toString()

@@ -70,11 +70,11 @@ public class ZooKeeperServerMain {
         throws ConfigException, IOException
     {
         try {
-            ManagedUtil.registerLog4jMBeans();
+            ManagedUtil.registerLog4jMBeans();//注册JMX服务
         } catch (JMException e) {
             LOG.warn("Unable to register log4j JMX control", e);
         }
-
+        //解析配置文件
         ServerConfig config = new ServerConfig();
         if (args.length == 1) {
             config.parse(args[0]);

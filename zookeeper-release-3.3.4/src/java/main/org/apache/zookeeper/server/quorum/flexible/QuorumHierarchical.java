@@ -70,7 +70,7 @@ public class QuorumHierarchical implements QuorumVerifier {
     HashMap<Long, Long> serverGroup;
     HashMap<Long, Long> groupWeight;
     
-    int numGroups;
+    int numGroups; //非零权重组数
    
     /**
      * This contructor requires the quorum configuration
@@ -109,9 +109,9 @@ public class QuorumHierarchical implements QuorumVerifier {
     *  validating quorums. We use it with QuorumPeerConfig. That is,
     *  we declare weights and groups in the server configuration
     *  file along with the other parameters.
-    * @param numGroups
-    * @param serverWeight
-    * @param serverGroup
+    * @param numGroups 分组数
+    * @param serverWeight 权重集合
+    * @param serverGroup 分组集合
     */
     public QuorumHierarchical(int numGroups,
             HashMap<Long, Long> serverWeight,

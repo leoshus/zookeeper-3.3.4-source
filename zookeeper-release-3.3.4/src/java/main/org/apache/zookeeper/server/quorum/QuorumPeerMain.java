@@ -73,7 +73,7 @@ public class QuorumPeerMain {
     public static void main(String[] args) {
         QuorumPeerMain main = new QuorumPeerMain();
         try {
-            main.initializeAndRun(args);
+            main.initializeAndRun(args);//读取配置文件zoo.cfg
         } catch (IllegalArgumentException e) {
             LOG.fatal("Invalid arguments, exiting abnormally", e);
             LOG.info(USAGE);
@@ -96,7 +96,7 @@ public class QuorumPeerMain {
     {
         QuorumPeerConfig config = new QuorumPeerConfig();
         if (args.length == 1) {
-            config.parse(args[0]);
+            config.parse(args[0]);//解析配置文件zoo.cfg
         }
 
         if (args.length == 1 && config.servers.size() > 0) {
@@ -105,13 +105,14 @@ public class QuorumPeerMain {
             LOG.warn("Either no config or no quorum defined in config, running "
                     + " in standalone mode");
             // there is only server in the quorum -- run as standalone
+            //只有一台机器的单机模式
             ZooKeeperServerMain.main(args);
         }
     }
 
     public void runFromConfig(QuorumPeerConfig config) throws IOException {
       try {
-          ManagedUtil.registerLog4jMBeans();
+          ManagedUtil.registerLog4jMBeans();//注册JMX服务
       } catch (JMException e) {
           LOG.warn("Unable to register log4j JMX control", e);
       }
@@ -129,7 +130,7 @@ public class QuorumPeerMain {
                       new File(config.getDataDir())));
           quorumPeer.setQuorumPeers(config.getServers());
           quorumPeer.setElectionType(config.getElectionAlg());
-          quorumPeer.setMyid(config.getServerId());
+          quorumPeer.setMyid(config.getServerId());//设置当前节点的myid值
           quorumPeer.setTickTime(config.getTickTime());
           quorumPeer.setMinSessionTimeout(config.getMinSessionTimeout());
           quorumPeer.setMaxSessionTimeout(config.getMaxSessionTimeout());

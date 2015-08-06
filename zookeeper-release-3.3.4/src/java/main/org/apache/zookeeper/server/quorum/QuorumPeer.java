@@ -395,13 +395,14 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
     @Override
     public synchronized void start() {
         try {
+        	//恢复数据 从磁盘加载数据到内存
             zkDb.loadDataBase();
         } catch(IOException ie) {
             LOG.fatal("Unable to load database on disk", ie);
             throw new RuntimeException("Unable to run quorum server ", ie);
         }
-        cnxnFactory.start();        
-        startLeaderElection();
+        cnxnFactory.start();//用于处理与client的交互        
+        startLeaderElection();//开始选举算法
         super.start();
     }
 
@@ -412,6 +413,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
         responder.interrupt();
     }
     synchronized public void startLeaderElection() {
+    	//设置currentVote为myid 即一开始会选举自己作为leader
         currentVote = new Vote(myid, getLastLoggedZxid());
         for (QuorumServer p : getView().values()) {
             if (p.id == myid) {
@@ -483,7 +485,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
     
     /**
      * returns the highest zxid that this host has seen
-     * 
+     *  查询当前节点的最大zxid
      * @return the highest zxid for this host
      */
     public long getLastLoggedZxid() {
