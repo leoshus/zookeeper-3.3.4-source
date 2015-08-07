@@ -129,7 +129,7 @@ public class QuorumPeerMain {
                       new File(config.getDataLogDir()),
                       new File(config.getDataDir())));
           quorumPeer.setQuorumPeers(config.getServers());
-          quorumPeer.setElectionType(config.getElectionAlg());
+          quorumPeer.setElectionType(config.getElectionAlg());// 0:表示以原始的基于UDP的方式协作,1:表示不进行用户验证的基于UDP的快速选举 2:表示进行用户验证的基于UDP的快速选举 3:表示基于TCP的快速选举 默认为3
           quorumPeer.setMyid(config.getServerId());//设置当前节点的myid值
           quorumPeer.setTickTime(config.getTickTime());
           quorumPeer.setMinSessionTimeout(config.getMinSessionTimeout());

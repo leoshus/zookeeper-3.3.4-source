@@ -475,6 +475,7 @@ public class FastLeaderElection implements Election {
 
     /**
      * Send notifications to all peers upon a change in our vote
+     * 当选举发送变化的时候 给所有节点发送消息通知
      */
     private void sendNotifications() {
         for (QuorumServer server : self.getVotingView().values()) {
