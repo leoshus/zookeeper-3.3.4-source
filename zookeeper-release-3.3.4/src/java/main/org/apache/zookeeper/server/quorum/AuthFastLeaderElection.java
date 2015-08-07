@@ -63,7 +63,7 @@ public class AuthFastLeaderElection implements Election {
     /*
      * Flag to determine whether to authenticate or not
      */
-
+    //是否进行用户验证
     private boolean authEnabled = false;
 
     static public class Notification {

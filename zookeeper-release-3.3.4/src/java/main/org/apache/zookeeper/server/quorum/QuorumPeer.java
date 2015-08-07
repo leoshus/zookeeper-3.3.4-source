@@ -340,9 +340,9 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
         return myQuorumAddr;
     }
 
-    private int electionType;
+    private int electionType;//等价于 QuorumPeerConfig 中解析的electionAlg字段
 
-    Election electionAlg;
+    Election electionAlg;//当前节点的选举策略 当electionType为0时 默认为new LeaderElection(this)
 
     NIOServerCnxn.Factory cnxnFactory;
     private FileTxnSnapLog logFactory = null;
@@ -424,7 +424,8 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
         if (myQuorumAddr == null) {
             throw new RuntimeException("My id " + myid + " not in the peer list");
         }
-        if (electionType == 0) {
+        //electionType  0:表示以原始的基于UDP的方式协作,1:表示不进行用户验证的基于UDP的快速选举 2:表示进行用户验证的基于UDP的快速选举 3:表示基于TCP的快速选举 默认为3
+        if (electionType == 0) {//如果当前节点的electionType等于0  ResponsederThread线程将监视2888这个端口 处理其他节点的请求 
             try {
                 udpSocket = new DatagramSocket(myQuorumAddr.getPort());
                 responder = new ResponderThread();
@@ -525,16 +526,16 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
                 
         //TODO: use a factory rather than a switch
         switch (electionAlgorithm) {
-        case 0:
+        case 0://基于原始的UDP方式协作
             le = new LeaderElection(this);
             break;
-        case 1:
+        case 1://不进行用户验证的基于UDP的快速选举
             le = new AuthFastLeaderElection(this);
             break;
-        case 2:
+        case 2://进行用户验证的基于UDP的快速选举
             le = new AuthFastLeaderElection(this, true);
             break;
-        case 3:
+        case 3://基于TCP的快速选举  默认选项
             qcm = new QuorumCnxManager(this);
             QuorumCnxManager.Listener listener = qcm.listener;
             if(listener != null){

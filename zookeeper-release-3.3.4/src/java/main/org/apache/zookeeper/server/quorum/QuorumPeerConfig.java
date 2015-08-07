@@ -54,7 +54,7 @@ public class QuorumPeerConfig {
 
     protected int initLimit;
     protected int syncLimit;
-    protected int electionAlg = 3;
+    protected int electionAlg = 3;  //0:表示以原始的基于UDP的方式协作,1:表示不进行用户验证的基于UDP的快速选举 2:表示进行用户验证的基于UDP的快速选举 3:表示基于TCP的快速选举 默认为3
     protected int electionPort = 2182;
     protected final HashMap<Long,QuorumServer> servers = //所有服务器的集合 包含obervers
         new HashMap<Long, QuorumServer>();
@@ -208,7 +208,7 @@ public class QuorumPeerConfig {
                 int dot = key.indexOf('.');
                 long sid = Long.parseLong(key.substring(dot + 1));
                 serverWeight.put(sid, Long.parseLong(value));
-            } else {
+            } else {//设置环境变量
                 System.setProperty("zookeeper." + key, value);
             }
         }
