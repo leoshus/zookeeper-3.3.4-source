@@ -110,7 +110,7 @@ public class ZooKeeper {
         Environment.logEnv("Client environment:", LOG);
     }
 
-
+    //ClientWatcherManager
     private final ZKWatchManager watchManager = new ZKWatchManager();
 
     List<String> getDataWatches() {
@@ -378,8 +378,9 @@ public class ZooKeeper {
     {
         LOG.info("Initiating client connection, connectString=" + connectString
                 + " sessionTimeout=" + sessionTimeout + " watcher=" + watcher);
-
+        //将构造器中的watcher设置为默认watcher
         watchManager.defaultWatcher = watcher;
+        //创建ClientCnxn实例
         cnxn = new ClientCnxn(connectString, sessionTimeout, this, watchManager);
         cnxn.start();
     }

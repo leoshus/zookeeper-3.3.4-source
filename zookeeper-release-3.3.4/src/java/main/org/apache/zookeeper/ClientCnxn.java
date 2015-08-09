@@ -393,8 +393,8 @@ public class ClientCnxn {
         connectTimeout = sessionTimeout / hostsList.length;
         readTimeout = sessionTimeout * 2 / 3;
         Collections.shuffle(serverAddrs);
-        sendThread = new SendThread();
-        eventThread = new EventThread();
+        sendThread = new SendThread();//创建SendThread实例  用于管理客户端和服务端的所有网络I/O
+        eventThread = new EventThread();//创建EventThread实例 用于进行客户端的事件处理
     }
 
     /**
@@ -777,7 +777,7 @@ public class ClientCnxn {
                 }
                 return;
             }
-            if (replyHdr.getXid() == -1) {
+            if (replyHdr.getXid() == -1) {//-1表示当前为一个通知 notification
                 // -1 means notification
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Got notification sessionid:0x"
