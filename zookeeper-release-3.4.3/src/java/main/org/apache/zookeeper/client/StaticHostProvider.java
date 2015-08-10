@@ -41,9 +41,9 @@ public final class StaticHostProvider implements HostProvider {
     private final List<InetSocketAddress> serverAddresses = new ArrayList<InetSocketAddress>(
             5);
 
-    private int lastIndex = -1;
+    private int lastIndex = -1;//指向最后一个host地址
 
-    private int currentIndex = -1;
+    private int currentIndex = -1;//指向当前host地址
 
     /**
      * Constructs a SimpleHostSet.
@@ -76,6 +76,9 @@ public final class StaticHostProvider implements HostProvider {
         return serverAddresses.size();
     }
 
+    /**
+     * 断开尝试重连时获取下一个host地址
+     */
     public InetSocketAddress next(long spinDelay) {
         ++currentIndex;
         if (currentIndex == serverAddresses.size()) {

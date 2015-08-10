@@ -115,11 +115,14 @@ public class ClientCnxn {
     private final CopyOnWriteArraySet<AuthData> authInfo = new CopyOnWriteArraySet<AuthData>();
 
     /**
+     * 等待服务端响应的等待队列
      * These are the packets that have been sent and are waiting for a response.
      */
     private final LinkedList<Packet> pendingQueue = new LinkedList<Packet>();
 
     /**
+     * 客户端的请求发送队列
+     * 需要被发送的packets
      * These are the packets that need to be sent.
      */
     private final LinkedList<Packet> outgoingQueue = new LinkedList<Packet>();

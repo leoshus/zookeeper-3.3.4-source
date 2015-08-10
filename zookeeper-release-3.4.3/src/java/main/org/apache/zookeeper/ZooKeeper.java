@@ -1748,6 +1748,8 @@ public class ZooKeeper {
     }
 
     private static ClientCnxnSocket getClientCnxnSocket() throws IOException {
+    	//获取环境变量zookeeper.clientCnxnSocket 默认为ClientCnxnSocketNIO
+    	//可以通过设置-Dzookeeper.clientCnxnSocket=org.apache.zookeeper.xxx 指定是用自己实现的NIO还是Netty实现
         String clientCnxnSocketName = System
                 .getProperty(ZOOKEEPER_CLIENT_CNXN_SOCKET);
         if (clientCnxnSocketName == null) {
