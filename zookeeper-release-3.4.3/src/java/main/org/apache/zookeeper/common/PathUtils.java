@@ -36,6 +36,7 @@ public class PathUtils {
 	}
 	
     /**
+     * 校验提供的znode节点path字符串
      * Validate the provided znode path string
      * @param path znode path string
      * @throws IllegalArgumentException if the path is invalid
@@ -51,10 +52,10 @@ public class PathUtils {
             throw new IllegalArgumentException(
                          "Path must start with / character");
         }
-        if (path.length() == 1) { // done checking - it's the root
+        if (path.length() == 1) { // done checking - it's the root 长度为1 表明为根节点
             return;
         }
-        if (path.charAt(path.length() - 1) == '/') {
+        if (path.charAt(path.length() - 1) == '/') {//path 不能以'/'结尾
             throw new IllegalArgumentException(
                          "Path must not end with / character");
         }

@@ -130,7 +130,7 @@ public class ZooKeeper {
         private final Map<String, Set<Watcher>> childWatches =
             new HashMap<String, Set<Watcher>>();
 
-        private volatile Watcher defaultWatcher;
+        private volatile Watcher defaultWatcher;//默认watcher
 
         final private void addTo(Set<Watcher> from, Set<Watcher> to) {
             if (from != null) {
@@ -225,6 +225,7 @@ public class ZooKeeper {
     }
 
     /**
+     * 为特定path注册watcher事件
      * Register a watcher for a particular path.
      */
     abstract class WatchRegistration {
@@ -257,6 +258,7 @@ public class ZooKeeper {
             }
         }
         /**
+         * 根据返回值判断当前的watch是否已经被添加
          * Determine whether the watch should be added based on return code.
          * @param rc the result code of the operation that attempted to add the
          * watch on the node
@@ -433,8 +435,8 @@ public class ZooKeeper {
         LOG.info("Initiating client connection, connectString=" + connectString
                 + " sessionTimeout=" + sessionTimeout + " watcher=" + watcher);
 
-        watchManager.defaultWatcher = watcher;
-
+        watchManager.defaultWatcher = watcher;//zookeeper构造器中的watcher设置为默认
+        //解析connectString 得到chrootPath和服务器列表serverAddresses
         ConnectStringParser connectStringParser = new ConnectStringParser(
                 connectString);
         HostProvider hostProvider = new StaticHostProvider(
