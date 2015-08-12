@@ -81,9 +81,9 @@ public class DataTree {
      */
     private final ConcurrentHashMap<String, DataNode> nodes =
         new ConcurrentHashMap<String, DataNode>();
-
+    //数据变更Watcher
     private final WatchManager dataWatches = new WatchManager();
-
+    //子节点变更Watcher
     private final WatchManager childWatches = new WatchManager();
 
     /** the root of zookeeper tree */
@@ -617,6 +617,7 @@ public class DataTree {
           this.updateBytes(lastPrefix, (data == null ? 0 : data.length)
               - (lastdata == null ? 0 : lastdata.length));
         }
+        //对指定节点进行更新后 通过调用WatchManager的triggerWatch方法来触发相关事件
         dataWatches.triggerWatch(path, EventType.NodeDataChanged);
         return s;
     }

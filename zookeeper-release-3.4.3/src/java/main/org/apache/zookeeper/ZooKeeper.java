@@ -243,6 +243,7 @@ public class ZooKeeper {
          * Register the watcher with the set of watches on path.
          * @param rc the result code of the operation that attempted to
          * add the watch on the path.
+         * 将path与watcher对应 并交给ClientWatchManager(ZKWatchManager)管理
          */
         public void register(int rc) {
             if (shouldAddWatch(rc)) {
@@ -295,7 +296,7 @@ public class ZooKeeper {
 
         @Override
         protected Map<String, Set<Watcher>> getWatches(int rc) {
-            return watchManager.dataWatches;
+            return watchManager.dataWatches;//默认watcher
         }
     }
 
@@ -441,6 +442,7 @@ public class ZooKeeper {
                 connectString);
         HostProvider hostProvider = new StaticHostProvider(
                 connectStringParser.getServerAddresses());
+        //初始化ClientCnxn
         cnxn = new ClientCnxn(connectStringParser.getChrootPath(),
                 hostProvider, sessionTimeout, this, watchManager,
                 getClientCnxnSocket(), canBeReadOnly);
@@ -1119,7 +1121,7 @@ public class ZooKeeper {
         if (watcher != null) {
             wcb = new DataWatchRegistration(watcher, clientPath);
         }
-
+        //如果存在ChrootPath 则添加chrootPath
         final String serverPath = prependChroot(clientPath);
 
         RequestHeader h = new RequestHeader();
@@ -1128,6 +1130,7 @@ public class ZooKeeper {
         request.setPath(serverPath);
         request.setWatch(watcher != null);
         GetDataResponse response = new GetDataResponse();
+        //发生请求到服务端  Packet是Zookeeper中最小的通讯协议单元 将信息封装到Packet中进行客户端和服务端的网络传输
         ReplyHeader r = cnxn.submitRequest(h, request, response, wcb);
         if (r.getErr() != 0) {
             throw KeeperException.create(KeeperException.Code.get(r.getErr()),
@@ -1233,7 +1236,7 @@ public class ZooKeeper {
     {
         final String clientPath = path;
         PathUtils.validatePath(clientPath);
-
+        //处理chrootpath存在的情况
         final String serverPath = prependChroot(clientPath);
 
         RequestHeader h = new RequestHeader();

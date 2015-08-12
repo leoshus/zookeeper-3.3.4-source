@@ -38,9 +38,10 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 public class WatchManager {
     private static final Logger LOG = LoggerFactory.getLogger(WatchManager.class);
 
+    //从数据节点的粒度来托管Watcher
     private final HashMap<String, HashSet<Watcher>> watchTable =
         new HashMap<String, HashSet<Watcher>>();
-
+    //从Watcher的粒度来控制事件触发需要触发的数据节点
     private final HashMap<Watcher, HashSet<String>> watch2Paths =
         new HashMap<Watcher, HashSet<String>>();
 

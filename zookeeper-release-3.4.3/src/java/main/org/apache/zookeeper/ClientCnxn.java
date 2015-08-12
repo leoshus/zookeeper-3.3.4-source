@@ -713,6 +713,7 @@ public class ClientCnxn {
         private Random r = new Random(System.nanoTime());        
         private boolean isFirstConnect = true;
 
+        //负责接收来自服务端的响应
         void readResponse(ByteBuffer incomingBuffer) throws IOException {
             ByteBufferInputStream bbis = new ByteBufferInputStream(
                     incomingBuffer);
@@ -1249,6 +1250,7 @@ public class ClientCnxn {
             Record response, WatchRegistration watchRegistration)
             throws InterruptedException {
         ReplyHeader r = new ReplyHeader();
+        //将请求封装成Packet Zookeeper中最小的通讯协议单元
         Packet packet = queuePacket(h, r, request, response, null, null, null,
                     null, watchRegistration);
         synchronized (packet) {

@@ -290,7 +290,7 @@ public class FinalRequestProcessor implements RequestProcessor {
                         request.authInfo);
                 Stat stat = new Stat();
                 byte b[] = zks.getZKDatabase().getData(getDataRequest.getPath(), stat,
-                        getDataRequest.getWatch() ? cnxn : null);
+                        getDataRequest.getWatch() ? cnxn : null);//判断当前请求是否注册Watcher 如果注册了就将ServerCnxn对象和数据节点路径传递给getData
                 rsp = new GetDataResponse(b, stat);
                 break;
             }
