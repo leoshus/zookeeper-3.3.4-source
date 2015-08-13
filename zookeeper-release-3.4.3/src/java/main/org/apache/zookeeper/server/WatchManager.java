@@ -53,6 +53,11 @@ public class WatchManager {
         return result;
     }
 
+    /**
+     * 对watchTable与watch2Paths添加watcher
+     * @param path
+     * @param watcher
+     */
     public synchronized void addWatch(String path, Watcher watcher) {
         HashSet<Watcher> list = watchTable.get(path);
         if (list == null) {
@@ -93,11 +98,13 @@ public class WatchManager {
         return triggerWatch(path, type, null);
     }
 
+    //
     public Set<Watcher> triggerWatch(String path, EventType type, Set<Watcher> supress) {
         WatchedEvent e = new WatchedEvent(type,
                 KeeperState.SyncConnected, path);
         HashSet<Watcher> watchers;
         synchronized (this) {
+        	//从watchTable中remove当前事件的watcher
             watchers = watchTable.remove(path);
             if (watchers == null || watchers.isEmpty()) {
                 if (LOG.isTraceEnabled()) {
@@ -107,6 +114,7 @@ public class WatchManager {
                 }
                 return null;
             }
+            //从watch2Paths中remove当前事件的watcher
             for (Watcher w : watchers) {
                 HashSet<String> paths = watch2Paths.get(w);
                 if (paths != null) {
@@ -118,6 +126,10 @@ public class WatchManager {
             if (supress != null && supress.contains(w)) {
                 continue;
             }
+            //服务端回调wathcer.processs(WatchedEvent) 由于客户端传到服务端只是是否存在watcher的标识 
+            //在FinalRequestProcessor.processRequest()的getData等逻辑 是就将ServerCnxn作为服务端的watcher以及节点路径传递给getData方法
+            //最终ServerCnxn和数据节点路径都是保持在了WatchManager中的WatchTable和watch2Paths中
+            //ServerCnxn默认实现为NIOServerCnxn 也有Netty实现NettyServerCnxn
             w.process(e);
         }
         return watchers;

@@ -650,7 +650,7 @@ public class DataTree {
         }
         synchronized (n) {
             n.copyStat(stat);
-            if (watcher != null) {
+            if (watcher != null) {//存在watcher 将watcher托管给watchManager
                 dataWatches.addWatch(path, watcher);
             }
             return n.data;
@@ -805,7 +805,7 @@ public class DataTree {
                     rc.path = deleteTxn.getPath();
                     deleteNode(deleteTxn.getPath(), header.getZxid());
                     break;
-                case OpCode.setData:
+                case OpCode.setData://变更节点内容
                     SetDataTxn setDataTxn = (SetDataTxn) txn;
                     debug = "Set data transaction for "
                             + setDataTxn.getPath()

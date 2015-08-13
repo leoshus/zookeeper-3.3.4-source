@@ -956,7 +956,12 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         // wrap SASL response token to client inside a Response object.
         return new SetSASLResponse(responseToken);
     }
-    
+    /**
+     * 事务处理
+     * @param hdr
+     * @param txn
+     * @return
+     */
     public ProcessTxnResult processTxn(TxnHeader hdr, Record txn) {
         ProcessTxnResult rc;
         int opCode = hdr.getType();

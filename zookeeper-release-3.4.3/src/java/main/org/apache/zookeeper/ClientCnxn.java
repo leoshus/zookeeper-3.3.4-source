@@ -231,13 +231,13 @@ public class ClientCnxn {
      * This class allows us to pass the headers and the relevant records around.
      */
     static class Packet {
-        RequestHeader requestHeader;
+        RequestHeader requestHeader;//请求头
 
-        ReplyHeader replyHeader;
+        ReplyHeader replyHeader;//响应头
 
-        Record request;
+        Record request;//请求体
 
-        Record response;
+        Record response;//响应体
 
         ByteBuffer bb;
 
@@ -252,7 +252,7 @@ public class ClientCnxn {
 
         Object ctx;
 
-        WatchRegistration watchRegistration;
+        WatchRegistration watchRegistration;//注册的watcher
 
         /** Convenience ctor */
         Packet(RequestHeader requestHeader, ReplyHeader replyHeader,
@@ -262,6 +262,16 @@ public class ClientCnxn {
                  watchRegistration, false);
         }
 
+        /**
+         * Packet并不会序列化所有的属性  
+         * 只会将requestHeader、request和readOnly三个属性序列化 其余属性保存在客户端的上下文中 不会进行与服务端的网络传输
+         * @param requestHeader
+         * @param replyHeader
+         * @param request
+         * @param response
+         * @param watchRegistration
+         * @param readOnly
+         */
         Packet(RequestHeader requestHeader, ReplyHeader replyHeader,
                Record request, Record response,
                WatchRegistration watchRegistration, boolean readOnly) {
@@ -438,6 +448,12 @@ public class ClientCnxn {
         return name + suffix;
     }
 
+    /**
+     * 事件线程
+     * Zookeeper 客户端中专门用来处理服务器通知事件的线程
+     * @author Administrator
+     *
+     */
     class EventThread extends Thread {
         private final LinkedBlockingQueue<Object> waitingEvents =
             new LinkedBlockingQueue<Object>();
@@ -465,11 +481,14 @@ public class ClientCnxn {
             sessionState = event.getState();
 
             // materialize the watchers based on the event
+            //materialize从WatchManager中取出对应KeeperStat、EventType、Path的watcher
+            //WatcherSetEventPair 表示了一个Watcher集合以及对应Watcher的WatchedEvent的数据结构
             WatcherSetEventPair pair = new WatcherSetEventPair(
                     watcher.materialize(event.getState(), event.getType(),
                             event.getPath()),
                             event);
             // queue the pair (watch set & event) for later processing
+            //将watch set & event对 放入waitingEvents这个待处理的Watcher队列中，EventThread的run方法会不断对该队列进行处理
             waitingEvents.add(pair);
         }
 
@@ -497,6 +516,7 @@ public class ClientCnxn {
                  if (event == eventOfDeath) {
                     wasKilled = true;
                  } else {
+                	 //处理watcher
                     processEvent(event);
                  }
                  if (wasKilled)
@@ -521,6 +541,7 @@ public class ClientCnxn {
                   WatcherSetEventPair pair = (WatcherSetEventPair) event;
                   for (Watcher watcher : pair.watchers) {
                       try {
+                    	  //完成客户端注册的watcher的回调
                           watcher.process(pair.event);
                       } catch (Throwable t) {
                           LOG.error("Error while calling watcher ", t);
@@ -704,6 +725,7 @@ public class ClientCnxn {
             4096 * 1024);
 
     /**
+     * I/O线程 主要负责Zookeeper客户端和服务端之间的网络I/O通信
      * This class services the outgoing request queue and generates the heart
      * beats. It also spawns the ReadThread.
      */
@@ -745,16 +767,18 @@ public class ClientCnxn {
                 }
                 return;
             }
-            if (replyHdr.getXid() == -1) {
+            if (replyHdr.getXid() == -1) {//-1表示通知类型的响应 具体见NIOServerCnxn.process
                 // -1 means notification
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Got notification sessionid:0x"
                         + Long.toHexString(sessionId));
                 }
                 WatcherEvent event = new WatcherEvent();
-                event.deserialize(bbia, "response");
+                event.deserialize(bbia, "response");//反序列化
 
                 // convert from a server path to a client path
+              //处理chrootpath 例如客户端设置了chrootpath为/server1,那么针对服务器传过来的响应包含的节点路径为/server1/app1
+                //经过chrootpath处理后 就会变成一个相对路径:/app1
                 if (chrootPath != null) {
                     String serverPath = event.getPath();
                     if(serverPath.compareTo(chrootPath)==0)
@@ -767,13 +791,13 @@ public class ClientCnxn {
                     			+ chrootPath);
                     }
                 }
-
+                //将WatcherEvent解封成WatchedEvent
                 WatchedEvent we = new WatchedEvent(event);
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Got " + we + " for sessionid 0x"
                             + Long.toHexString(sessionId));
                 }
-
+                //将WatchedEvent交给EventThread线程，在下一个轮询周期进行watcher的回调
                 eventThread.queueEvent( we );
                 return;
             }

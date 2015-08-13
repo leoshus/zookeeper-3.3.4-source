@@ -359,6 +359,7 @@ public class ZKDatabase {
     }
 
     /**
+     * 获取节点对应的数据和状态
      * get data and stat for a path 
      * @param path the path being queried
      * @param stat the stat for this path
