@@ -115,14 +115,14 @@ public class LeaderElection implements Election  {
             if (v.getId() == result.vote.getId()) {
                 result.count++;
             } else if (v.getZxid() > result.vote.getZxid()
-                    || (v.getZxid() == result.vote.getZxid() && v.getId() > result.vote.getId())) {
+                    || (v.getZxid() == result.vote.getZxid() && v.getId() > result.vote.getId())) {//选举zxid最大的节点作为leader 如果zxid相等,则选举myid较大的作为Leader
                 result.vote = v;
                 result.count = 1;
             }
         }
         result.winningCount = 0;
         LOG.info("Election tally: ");
-        for (Entry<Vote, Integer> entry : countTable.entrySet()) {
+        for (Entry<Vote, Integer> entry : countTable.entrySet()) {//再次检查 确认选举出来的Leader
             if (entry.getValue() > result.winningCount) {
                 result.winningCount = entry.getValue();
                 result.winner = entry.getKey();
@@ -183,6 +183,7 @@ public class LeaderElection implements Election  {
                 requestBuffer.putInt(xid);
                 requestPacket.setLength(4);
                 HashSet<Long> heardFrom = new HashSet<Long>();
+                //对每个选举节点询问他们选举的leader
                 for (QuorumServer server : self.getVotingView().values()) {
                     LOG.info("Server address: " + server.addr);
                     try {
@@ -230,7 +231,7 @@ public class LeaderElection implements Election  {
                         // down
                     }
                 }
-
+                //调用countVotes方法查看胜出的节点 并将它设置成currentVote 如果查过半数的节点选举此节点则选举成功
                 ElectionResult result = countVotes(votes, heardFrom);
                 // ZOOKEEPER-569:
                 // If no votes are received for live peers, reset to voting 
@@ -243,7 +244,7 @@ public class LeaderElection implements Election  {
                     if (result.winner.getId() >= 0) {
                         self.setCurrentVote(result.vote);
                         // To do: this doesn't use a quorum verifier
-                        if (result.winningCount > (self.getVotingView().size() / 2)) {
+                        if (result.winningCount > (self.getVotingView().size() / 2)) {//大于半数节点 则选举成功
                             self.setCurrentVote(result.winner);
                             s.close();
                             Vote current = self.getCurrentVote();
@@ -255,18 +256,18 @@ public class LeaderElection implements Election  {
                              * FOLLOWING. However if we are an OBSERVER, it is an
                              * error to be elected as a Leader.
                              */
-                            if (self.getLearnerType() == LearnerType.OBSERVER) {
-                                if (current.getId() == self.getId()) {
+                            if (self.getLearnerType() == LearnerType.OBSERVER) {//如果当前节点角色为OBSEVER
+                                if (current.getId() == self.getId()) {//自己被选中 升级为Leader
                                     // This should never happen!
                                     LOG.error("OBSERVER elected as leader!");
                                     Thread.sleep(100);
                                 }
-                                else {
+                                else {//否则继续保持OBSERVING状态
                                     self.setPeerState(ServerState.OBSERVING);
                                     Thread.sleep(100);
                                     return current;
                                 }
-                            } else {
+                            } else {//否则判断自己是否选为Leader 如果未被选中,中将状态设置为FOLLOWING状态
                                 self.setPeerState((current.getId() == self.getId())
                                         ? ServerState.LEADING: ServerState.FOLLOWING);
                                 if (self.getPeerState() == ServerState.FOLLOWING) {

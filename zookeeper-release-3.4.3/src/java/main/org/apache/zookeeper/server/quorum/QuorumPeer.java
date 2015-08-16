@@ -406,9 +406,9 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
     
     @Override
     public synchronized void start() {
-        loadDataBase();
-        cnxnFactory.start();        
-        startLeaderElection();
+        loadDataBase();//加载内存数据库
+        cnxnFactory.start();  //用于与客户端交互      
+        startLeaderElection();//开始选举算法
         super.start();
     }
 
@@ -463,12 +463,14 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
     }
     synchronized public void startLeaderElection() {
     	try {
+    		//首先将自己的myid设置为currentVote (即将首先将自己作为leader选举)
     		currentVote = new Vote(myid, getLastLoggedZxid(), getCurrentEpoch());
     	} catch(IOException e) {
     		RuntimeException re = new RuntimeException(e.getMessage());
     		re.setStackTrace(e.getStackTrace());
     		throw re;
     	}
+    	//从zoo.cfg配置的server list中遍历查找自己的host address
         for (QuorumServer p : getView().values()) {
             if (p.id == myid) {
                 myQuorumAddr = p.addr;
@@ -478,7 +480,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
         if (myQuorumAddr == null) {
             throw new RuntimeException("My id " + myid + " not in the peer list");
         }
-        if (electionType == 0) {
+        if (electionType == 0) {//electionType为0(即electionAlg=0) 使用LeaderElection算法 在run方法中会调用lookForLeader方法
             try {
                 udpSocket = new DatagramSocket(myQuorumAddr.getPort());
                 responder = new ResponderThread();

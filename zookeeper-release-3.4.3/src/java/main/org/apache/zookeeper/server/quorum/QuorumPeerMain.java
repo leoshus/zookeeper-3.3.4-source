@@ -126,6 +126,7 @@ public class QuorumPeerMain {
   
       LOG.info("Starting quorum peer");
       try {
+    	  //创建与客户端交互 可通过zookeeper.serverCnxnFactory来设置 默认实现为NIOServerCnxnFactory
           ServerCnxnFactory cnxnFactory = ServerCnxnFactory.createFactory();
           cnxnFactory.configure(config.getClientPortAddress(),
                                 config.getMaxClientCnxns());
@@ -136,7 +137,7 @@ public class QuorumPeerMain {
                       new File(config.getDataLogDir()),
                       new File(config.getDataDir())));
           quorumPeer.setQuorumPeers(config.getServers());
-          quorumPeer.setElectionType(config.getElectionAlg());
+          quorumPeer.setElectionType(config.getElectionAlg());//electionType==electionAlg
           quorumPeer.setMyid(config.getServerId());
           quorumPeer.setTickTime(config.getTickTime());
           quorumPeer.setMinSessionTimeout(config.getMinSessionTimeout());

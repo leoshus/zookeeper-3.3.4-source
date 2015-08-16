@@ -483,8 +483,8 @@ public class FastLeaderElection implements Election {
         proposedLeader = -1;
         proposedZxid = -1;
 
-        sendqueue = new LinkedBlockingQueue<ToSend>();
-        recvqueue = new LinkedBlockingQueue<Notification>();
+        sendqueue = new LinkedBlockingQueue<ToSend>();//发送线程池
+        recvqueue = new LinkedBlockingQueue<Notification>();//接收线程池
         this.messenger = new Messenger(manager);
     }
 
@@ -533,7 +533,7 @@ public class FastLeaderElection implements Election {
                       " (n.round), " + sid + " (recipient), " + self.getId() +
                       " (myid), 0x" + Long.toHexString(proposedEpoch) + " (n.peerEpoch)");
             }
-            sendqueue.offer(notmsg);
+            sendqueue.offer(notmsg);//根据现有的投票服务器数构造投票消息个数 并添加到阻塞队列中 
         }
     }
 
@@ -723,12 +723,13 @@ public class FastLeaderElection implements Election {
             int notTimeout = finalizeWait;
 
             synchronized(this){
-                logicalclock++;
-                    updateProposal(getInitId(), getInitLastLoggedZxid(), getPeerEpoch());
+                logicalclock++;//首先将自己的logicalclock自加一
+                    updateProposal(getInitId(), getInitLastLoggedZxid(), getPeerEpoch());//将自己作为leader投票
             }
 
             LOG.info("New election. My id =  " + self.getId() +
                     ", proposed zxid=0x" + Long.toHexString(proposedZxid));
+            //构造消息发送给其他投票节点
             sendNotifications();
 
             /*
@@ -736,7 +737,7 @@ public class FastLeaderElection implements Election {
              */
 
             while ((self.getPeerState() == ServerState.LOOKING) &&
-                    (!stop)){
+                    (!stop)){//如果当前节点状态为LOOKING并且正常运行 就一直循环交换notification 知道找到一个leader
                 /*
                  * Remove next notification from queue, times out after 2 times
                  * the termination time
@@ -749,7 +750,7 @@ public class FastLeaderElection implements Election {
                  * Otherwise processes new notification.
                  */
                 if(n == null){
-                    if(manager.haveDelivered()){
+                    if(manager.haveDelivered()){//判断消息队列中消息是否已发送完
                         sendNotifications();
                     } else {
                         manager.connectAll();
@@ -765,13 +766,14 @@ public class FastLeaderElection implements Election {
                 }
                 else if(self.getVotingView().containsKey(n.sid)) {
                     /*
+                     * 只处理来自集群中的投票服务器发来notification
                      * Only proceed if the vote comes from a replica in the
                      * voting view.
                      */
                     switch (n.state) {
                     case LOOKING:
                         // If notification > current, replace and send messages out
-                        if (n.electionEpoch > logicalclock) {
+                        if (n.electionEpoch > logicalclock) {//返回notification中的electionEpoch大于当前的logicalclock
                             logicalclock = n.electionEpoch;
                             recvset.clear();
                             if(totalOrderPredicate(n.leader, n.zxid, n.peerEpoch,
@@ -783,7 +785,7 @@ public class FastLeaderElection implements Election {
                                         getPeerEpoch());
                             }
                             sendNotifications();
-                        } else if (n.electionEpoch < logicalclock) {
+                        } else if (n.electionEpoch < logicalclock) {//响应的notification election epoch比当前的小
                             if(LOG.isDebugEnabled()){
                                 LOG.debug("Notification election epoch is smaller than logicalclock. n.electionEpoch = 0x"
                                         + Long.toHexString(n.electionEpoch)
@@ -804,7 +806,7 @@ public class FastLeaderElection implements Election {
                         }
 
                         recvset.put(n.sid, new Vote(n.leader, n.zxid, n.electionEpoch, n.peerEpoch));
-
+                        //如果满足结束的条件 将进入结束等待的阶段
                         if (termPredicate(recvset,
                                 new Vote(proposedLeader, proposedZxid,
                                         logicalclock, proposedEpoch))) {
