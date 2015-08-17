@@ -361,6 +361,11 @@ public class NIOServerCnxn extends ServerCnxn {
         }
     }
 
+    /**
+     * NIOServerCnxn接收到客户端的请求后 调用ZooKeeperServer.processPacket方法 该方法构造一个Request对象并调用第一个处理器FollowerRequestProcessor的processRequest方法。
+     * 该方法将Request对象放入FollowerRequestProcessor.queuedRequests队列中 FollowerRequestProcessor线程会循环从queuedRequests队列中取Request对象
+     * @throws IOException
+     */
     private void readRequest() throws IOException {
         zkServer.processPacket(this, incomingBuffer);
     }
@@ -403,6 +408,12 @@ public class NIOServerCnxn extends ServerCnxn {
         }
     }
 
+    /**
+     * 调用第一个处理器FollowerRequestProcessor的processRequest方法。
+     * 该方法将Request对象放入FollowerRequestProcessor.queuedRequests队列中 FollowerRequestProcessor线程会循环从queuedRequests队列中取Request对象
+     * @throws IOException
+     * @throws InterruptedException
+     */
     private void readConnectRequest() throws IOException, InterruptedException {
         if (zkServer == null) {
             throw new IOException("ZooKeeperServer not running");

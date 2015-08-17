@@ -1236,18 +1236,18 @@ public class ZooKeeper {
     {
         final String clientPath = path;
         PathUtils.validatePath(clientPath);
-        //处理chrootpath存在的情况
+        //处理chrootpath存在的情况 构造完整的serverPath
         final String serverPath = prependChroot(clientPath);
-
+        //构造一个request header
         RequestHeader h = new RequestHeader();
-        h.setType(ZooDefs.OpCode.setData);
-        SetDataRequest request = new SetDataRequest();
-        request.setPath(serverPath);
-        request.setData(data);
-        request.setVersion(version);
-        SetDataResponse response = new SetDataResponse();
-        ReplyHeader r = cnxn.submitRequest(h, request, response, null);
-        if (r.getErr() != 0) {
+        h.setType(ZooDefs.OpCode.setData);//将类型设置为OpCode.setData
+        SetDataRequest request = new SetDataRequest();//构造一个SetData请求体
+        request.setPath(serverPath);//设置需要修改node的serverPath
+        request.setData(data);//设置需要修改node的data
+        request.setVersion(version);//设置需要修改node的version
+        SetDataResponse response = new SetDataResponse();//构建SetDataResposne对象
+        ReplyHeader r = cnxn.submitRequest(h, request, response, null);//提交请求等待返回结果
+        if (r.getErr() != 0) {//如果r.getErr()不为0 表示出错
             throw KeeperException.create(KeeperException.Code.get(r.getErr()),
                     clientPath);
         }

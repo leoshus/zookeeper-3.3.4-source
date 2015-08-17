@@ -1166,6 +1166,7 @@ public class ClientCnxn {
         }
 
         /**
+         * 一旦连接建立 回调此方法
          * Callback invoked by the ClientCnxnSocket once a connection has been
          * established.
          * 
