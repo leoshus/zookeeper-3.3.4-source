@@ -947,6 +947,12 @@ public class ClientCnxn {
 
         private int pingRwTimeout = minPingRwTimeout;
 
+        /**
+         * 开始创建连接
+         * @date 2015年8月21日 下午7:06:38
+         * 
+         * @throws IOException
+         */
         private void startConnect() throws IOException {
             state = States.CONNECTING;
 
@@ -955,7 +961,7 @@ public class ClientCnxn {
                 addr = rwServerAddress;
                 rwServerAddress = null;
             } else {
-                addr = hostProvider.next(1000);
+                addr = hostProvider.next(1000);//获取zookeeper服务地址
             }
 
             LOG.info("Opening socket connection to server " + addr);
@@ -971,6 +977,7 @@ public class ClientCnxn {
                         Watcher.Event.EventType.None,
                         Watcher.Event.KeeperState.AuthFailed, null));
             }
+            //注册并发送连接请求
             clientCnxnSocket.connect(addr);
         }
 
@@ -998,8 +1005,9 @@ public class ClientCnxn {
                         if (closing || !state.isAlive()) {
                             break;
                         }
+                        //首次连接发送 创建会话的请求
                         startConnect();
-                        clientCnxnSocket.updateLastSendAndHeard();
+                        clientCnxnSocket.updateLastSendAndHeard();//更新最近一次的请求和心跳的时间
                     }
 
                     if (state.isConnected()) {

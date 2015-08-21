@@ -153,12 +153,12 @@ public class ZookeeperDemo implements Watcher{
 	@Test
 	public void test07(){
 		try {
-			zookeeper = new ZooKeeper("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183",TIME_OUT,null);
+			zookeeper = new ZooKeeper("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183",TIME_OUT,new ExtWatcher());
 			countdown.await();
 			zookeeper.addAuthInfo("digest", "foo:true".getBytes());
 			zookeeper.create("/servers/app7", "test app7".getBytes(), Ids.CREATOR_ALL_ACL, CreateMode.PERSISTENT);
 			zookeeper.getData("/servers/app7", false, null);
-			ZooKeeper zookeeper2 = new ZooKeeper("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183",TIME_OUT,null);
+			ZooKeeper zookeeper2 = new ZooKeeper("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183",TIME_OUT,new ExtWatcher());
 			zookeeper2.addAuthInfo("digest", "foo:false".getBytes());
 			zookeeper2.getData("/servers/app7", false, null);
 			Thread.sleep(Integer.MAX_VALUE);
@@ -174,17 +174,17 @@ public class ZookeeperDemo implements Watcher{
 	@Test
 	public void test08(){
 		try {
-			zookeeper = new ZooKeeper("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183",TIME_OUT,null);
+			zookeeper = new ZooKeeper("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183",TIME_OUT,new ExtWatcher());
 			countdown.await();
 			zookeeper.addAuthInfo("digest", "foo:true".getBytes());
 			zookeeper.create("/servers/app8", "test app8".getBytes(), Ids.CREATOR_ALL_ACL, CreateMode.PERSISTENT);
 			zookeeper.create("/servers/app9", "test app9".getBytes(), Ids.CREATOR_ALL_ACL, CreateMode.PERSISTENT);
-			ZooKeeper zookeeper2 = new ZooKeeper("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183",TIME_OUT,null);
+			ZooKeeper zookeeper2 = new ZooKeeper("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183",TIME_OUT,new ExtWatcher());
 			zookeeper2.addAuthInfo("digest", "foo:false".getBytes());
 			zookeeper2.delete("/servers/app8", -1);//删除失败
 			
 			zookeeper.delete("/servers/app8", -1);//删除成功
-			ZooKeeper zookeeper3 = new ZooKeeper("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183",TIME_OUT,null);
+			ZooKeeper zookeeper3 = new ZooKeeper("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183",TIME_OUT,new ExtWatcher());
 			zookeeper3.delete("/servers/app9", -1);//删除成功
 		} catch (Exception e) {
 			e.printStackTrace();
