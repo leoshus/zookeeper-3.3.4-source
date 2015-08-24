@@ -23,6 +23,7 @@ import org.apache.curator.utils.CloseableUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.data.Stat;
 import org.junit.Test;
 
 /**
@@ -108,14 +109,17 @@ public class CuratorDemo {
 			client = CuratorFrameworkFactory.builder()
 					.connectString(server.getConnectString())
 					.sessionTimeoutMs(3000)
+					.namespace("")//客户端隔离命名空间
 					.retryPolicy(retryPolicy)
 					.build();
 			client.start();
+			//------------------------------创建节点-----------------------------------
 			client.create().forPath(path);//创建节点
 			client.create().withMode(CreateMode.EPHEMERAL).forPath(path,"".getBytes());//创建临时节点
+			client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath("/example/test04","test04".getBytes());//creatingParentsIfNeeded如果存在父节点 递归创建父节点
 			client.create().withProtection().withMode(CreateMode.EPHEMERAL_SEQUENTIAL).forPath(path, "".getBytes());//创建临时序列节点
 			client.setData().forPath(path, "".getBytes());//设置节点数据
-			
+			//------------------------------异步接口----------------------------------
 			CuratorListener curatorListener = new CuratorListener() {
 				@Override
 				public void eventReceived(CuratorFramework client, CuratorEvent event)
@@ -135,9 +139,22 @@ public class CuratorDemo {
 				}
 			};
 			client.setData().inBackground(backgroundCallback).forPath(path, "".getBytes());//带回调的异步设置节点数据
-			
+			//--------------------------------------删除节点----------------------------------
 			client.delete().forPath(path);//删除节点
+			client.delete().deletingChildrenIfNeeded().forPath(path);//删除一个节点 并递归删除其所有的子节点
+			client.delete().withVersion(-1).forPath(path);//删除一个节点 强制制定版本进行删除
 			client.delete().guaranteed().forPath(path);//删除节点 保证完成
+			//------------------------------------读取数据-----------------------------------
+			client.getData().forPath(path);//读取一个节点内容
+			Stat stat = new Stat();
+			client.getData().storingStatIn(stat).forPath(path);//读取一个节点内容并返回该节点的stat 通过传入一个旧的stat对象 返回最新的节点状态信息
+			//------------------------------------更新数据-----------------------------------
+			Stat stat1 = client.setData().forPath(path);//更新数据 并返回一个stat对象
+			client.setData().forPath(path, "set data".getBytes());
+			Stat stat2 = client.setData().withVersion(-1).forPath(path);//强制制定一个版本更新一个节点内容 并返回一个stat对象
+			client.setData().withVersion(-1).forPath(path, "".getBytes());
+			
+			
 			client.getChildren().watched().forPath(path);//获取指定节点的子节点 并设置监听
 			client.getChildren().usingWatcher(new Watcher(){
 				@Override
