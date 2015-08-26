@@ -834,7 +834,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
             serverCnxnFactory.closeSession(sessionId);
             cnxn.setSessionId(sessionId);
             reopenSession(cnxn, sessionId, passwd, sessionTimeout);
-        } else {
+        } else {//初次创建会话
             LOG.info("Client attempting to establish new session at "
                     + cnxn.getRemoteSocketAddress());
             createSession(cnxn, passwd, sessionTimeout);

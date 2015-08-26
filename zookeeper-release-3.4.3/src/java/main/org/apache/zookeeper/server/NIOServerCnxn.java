@@ -99,7 +99,7 @@ public class NIOServerCnxn extends ServerCnxn {
         this.sk = sk;
         this.factory = factory;
         if (this.factory.login != null) {
-            this.zooKeeperSaslServer = new ZooKeeperSaslServer(factory.login);
+            this.zooKeeperSaslServer = new ZooKeeperSaslServer(factory.login);//SASL 认证
         }
         if (zk != null) { 
             outstandingLimit = zk.getGlobalOutstandingLimit();

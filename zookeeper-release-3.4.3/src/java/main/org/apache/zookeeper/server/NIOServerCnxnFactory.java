@@ -187,7 +187,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
             return s.size();
         }
     }
-
+    //监听客户端请求
     public void run() {
         while (!ss.socket().isClosed()) {
             try {
@@ -200,12 +200,12 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
                         selected);
                 Collections.shuffle(selectedList);
                 for (SelectionKey k : selectedList) {
-                    if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
+                    if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {//接收来自客户端的建立连接的请求
                         SocketChannel sc = ((ServerSocketChannel) k
                                 .channel()).accept();
                         InetAddress ia = sc.socket().getInetAddress();
                         int cnxncount = getClientCnxnCount(ia);
-                        if (maxClientCnxns > 0 && cnxncount >= maxClientCnxns){
+                        if (maxClientCnxns > 0 && cnxncount >= maxClientCnxns){//最大默认并发连接数为60 超过则拒绝连接
                             LOG.warn("Too many connections from " + ia
                                      + " - max is " + maxClientCnxns );
                             sc.close();
@@ -215,11 +215,11 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
                             sc.configureBlocking(false);
                             SelectionKey sk = sc.register(selector,
                                     SelectionKey.OP_READ);
-                            NIOServerCnxn cnxn = createConnection(sc, sk);
+                            NIOServerCnxn cnxn = createConnection(sc, sk);//创建一个连接
                             sk.attach(cnxn);
                             addCnxn(cnxn);
                         }
-                    } else if ((k.readyOps() & (SelectionKey.OP_READ | SelectionKey.OP_WRITE)) != 0) {
+                    } else if ((k.readyOps() & (SelectionKey.OP_READ | SelectionKey.OP_WRITE)) != 0) {//OP_READ或OP_WRITE事件准备就绪
                         NIOServerCnxn c = (NIOServerCnxn) k.attachment();
                         c.doIO(k);
                     } else {

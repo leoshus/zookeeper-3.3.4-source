@@ -100,7 +100,7 @@ public class QuorumPeerMain {
         if (args.length == 1) {
             config.parse(args[0]);//解析zoo.cfg配置文件
         }
-
+        //定时清理快照和事务日志到指定的数目
         // Start and schedule the the purge task
         DatadirCleanupManager purgeMgr = new DatadirCleanupManager(config
                 .getDataDir(), config.getDataLogDir(), config
@@ -108,12 +108,12 @@ public class QuorumPeerMain {
         purgeMgr.start();
 
         if (args.length == 1 && config.servers.size() > 0) {
-            runFromConfig(config);
+            runFromConfig(config);//集群模式
         } else {
             LOG.warn("Either no config or no quorum defined in config, running "
                     + " in standalone mode");
             // there is only server in the quorum -- run as standalone
-            ZooKeeperServerMain.main(args);
+            ZooKeeperServerMain.main(args);//单机模式
         }
     }
 
@@ -128,7 +128,7 @@ public class QuorumPeerMain {
       try {
     	  //创建与客户端交互 可通过zookeeper.serverCnxnFactory来设置 默认实现为NIOServerCnxnFactory
           ServerCnxnFactory cnxnFactory = ServerCnxnFactory.createFactory();
-          cnxnFactory.configure(config.getClientPortAddress(),
+          cnxnFactory.configure(config.getClientPortAddress(),//初始化一个ServerSocketChannel处理客户端的请求
                                 config.getMaxClientCnxns());
   
           quorumPeer = new QuorumPeer();
