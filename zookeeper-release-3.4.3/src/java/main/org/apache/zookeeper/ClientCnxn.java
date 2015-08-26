@@ -887,6 +887,14 @@ public class ClientCnxn {
             isFirstConnect = false;
             long sessId = (seenRwServerBefore) ? sessionId : 0;//默认初始为0
             //拼装连接请求
+            /**
+             * 创建会话 ---请求体
+             * protocolVersion协议版本号
+             * lastZxid 最近一次接收到的服务器ZXID
+             * 会话超时时间 timeout
+             * 会话标识 sessionId
+             * 会话密码 sessionPasswd
+             */
             ConnectRequest conReq = new ConnectRequest(0, lastZxid,
                     sessionTimeout, sessId, sessionPasswd);//初始lastZxid=0
             synchronized (outgoingQueue) {

@@ -1126,6 +1126,11 @@ public class ZooKeeper {
 
         RequestHeader h = new RequestHeader();
         h.setType(ZooDefs.OpCode.getData);
+        /**
+         * 获取节点数据 --- 请求体  GetDataRequest
+         * path 数据节点的节点路径
+         * watch 是否注册Watcher的标识
+         */
         GetDataRequest request = new GetDataRequest();
         request.setPath(serverPath);
         request.setWatch(watcher != null);
@@ -1239,8 +1244,19 @@ public class ZooKeeper {
         //处理chrootpath存在的情况 构造完整的serverPath
         final String serverPath = prependChroot(clientPath);
         //构造一个request header
+        /**
+         * 请求头 
+         * xid  客户端请求发起的先后序号
+         * type 请求的操作类型
+         */
         RequestHeader h = new RequestHeader();
         h.setType(ZooDefs.OpCode.setData);//将类型设置为OpCode.setData
+        /**
+         * 更新节点数据---请求体 SetDataRequest
+         * path 数据节点的节点路径
+         * data 数据内容
+         * version 节点数据的期望版本号
+         */
         SetDataRequest request = new SetDataRequest();//构造一个SetData请求体
         request.setPath(serverPath);//设置需要修改node的serverPath
         request.setData(data);//设置需要修改node的data
