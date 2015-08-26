@@ -35,6 +35,11 @@ public class SocketChannelDemo {
 					 channel.read(buffer);
 					 String msg = new String(buffer.array());
 					 System.out.println("client receive the msg =" + msg);
+					 channel.register(selector, SelectionKey.OP_WRITE);
+				}else if(selectionKey.isWritable()){
+					SocketChannel channel = (SocketChannel)selectionKey.channel();
+					channel.write(ByteBuffer.wrap("咱们开始谈话吧".getBytes()));
+					channel.register(selector, SelectionKey.OP_READ);
 				}
 			}
 			ByteBuffer buffer = ByteBuffer.allocate(1024);

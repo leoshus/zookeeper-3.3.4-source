@@ -47,6 +47,7 @@ public class CuratorNodeCache {
 		    client.setData().forPath(path,"update data".getBytes());
 		    Thread.sleep(1000);
 		    client.delete().deletingChildrenIfNeeded().forPath(path);
+		    nodecache.close();
 		    Thread.sleep(Integer.MAX_VALUE);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -70,6 +71,12 @@ public class CuratorNodeCache {
 			client.start();
 			
 			PathChildrenCache cache = new PathChildrenCache(client,path1,true);
+			/**
+			 * StartMode 用来为初始的cache设置暖场方式(warm):
+			 * StartMode.NORMAL 初始时为空
+			 * StartMode.BUILD_INITIAL_CACHE 在这个方法返回前调用rebuild()
+			 * StartMode.POST_INITIALIZED_EVENT 当cache初始化数据后发送一个PathChildrenCacheEvent.Type.INITIALIZED事件
+			 */
 			cache.start(StartMode.POST_INITIALIZED_EVENT);
 			cache.getListenable().addListener(new PathChildrenCacheListener(){
 				@Override
@@ -99,7 +106,38 @@ public class CuratorNodeCache {
 			client.delete().forPath(path1 + "/cachenode");
 			Thread.sleep(1000);
 			client.delete().forPath(path1);
+			cache.close();
 			Thread.sleep(Integer.MAX_VALUE);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally{
+			CloseableUtils.closeQuietly(client);
+		}
+	}
+	
+	
+	/**
+	 * TreeNode 即可监控节点的状态 也可以监控子节点的状态 监控整个树中节点的状态
+	 * TreeCache
+	 * TreeCacheListener
+	 * TreeCacheEvent
+	 * ChildData
+	 * @date 2015年8月25日 下午5:24:20
+	 */
+	@Test
+	public void test03(){
+		String path = "/curator/treecache";
+		CuratorFramework client = null;
+		try {
+			server = new TestingServer();
+			client = CuratorFrameworkFactory.builder()
+					.sessionTimeoutMs(5000)
+					.connectString(server.getConnectString())
+					.retryPolicy(new ExponentialBackoffRetry(1000,3))
+					.build();
+			client.start();
+			
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}finally{

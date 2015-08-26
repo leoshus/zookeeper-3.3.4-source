@@ -62,7 +62,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         if (sock == null) {
             throw new IOException("Socket is null!");
         }
-        if (sockKey.isReadable()) {
+        if (sockKey.isReadable()) {//当前读事件就绪
             int rc = sock.read(incomingBuffer);
             if (rc < 0) {
                 throw new EndOfStreamException(
@@ -71,38 +71,38 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                                 + ", likely server has closed socket");
             }
             if (!incomingBuffer.hasRemaining()) {
-                incomingBuffer.flip();
+                incomingBuffer.flip();//position=0 limit=读取完毕是的position
                 if (incomingBuffer == lenBuffer) {
                     recvCount++;
                     readLength();
                 } else if (!initialized) {
-                    readConnectResult();
-                    enableRead();
+                    readConnectResult();//读取连接请求的响应信息
+                    enableRead();//将当前selectionKey 的interestOps加上OP_READ
                     if (!outgoingQueue.isEmpty()) {
-                        enableWrite();
+                        enableWrite();//将当前selectionKey 的interestOps加上OP_WRITE
                     }
                     lenBuffer.clear();
                     incomingBuffer = lenBuffer;
                     updateLastHeard();
                     initialized = true;
                 } else {
-                    sendThread.readResponse(incomingBuffer);
+                    sendThread.readResponse(incomingBuffer);//读取响应数据
                     lenBuffer.clear();
                     incomingBuffer = lenBuffer;
                     updateLastHeard();
                 }
             }
         }
-        if (sockKey.isWritable()) {
+        if (sockKey.isWritable()) {//当前写事件就绪
             LinkedList<Packet> pending = new LinkedList<Packet>();
             synchronized (outgoingQueue) {
                 if (!outgoingQueue.isEmpty()) {
                     updateLastSend();
-                    ByteBuffer pbb = outgoingQueue.getFirst().bb;
-                    sock.write(pbb);
-                    if (!pbb.hasRemaining()) {
+                    ByteBuffer pbb = outgoingQueue.getFirst().bb;//从outgoingQueue中取出请求Packet报文
+                    sock.write(pbb);//将请求Packet报文包写入到SocketChannel
+                    if (!pbb.hasRemaining()) {//pdd已经全部写入到SocketChannel 
                         sentCount++;
-                        Packet p = outgoingQueue.removeFirst();
+                        Packet p = outgoingQueue.removeFirst();//将请求Packet报文从outgoingQueue队列中移除并取 放入到pendingQueue等待服务器响应(如果是非认证和心跳请求)
                         if (p.requestHeader != null
                                 && p.requestHeader.getType() != OpCode.ping
                                 && p.requestHeader.getType() != OpCode.auth) {
@@ -178,6 +178,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
     }
     
     /**
+     * 创建一个socketChannel
      * create a socket channel.
      * @return the created socket channel
      * @throws IOException
@@ -199,26 +200,28 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
      */
     void registerAndConnect(SocketChannel sock, InetSocketAddress addr) 
     throws IOException {
-        sockKey = sock.register(selector, SelectionKey.OP_CONNECT);
-        boolean immediateConnect = sock.connect(addr);            
-        if (immediateConnect) {
-            sendThread.primeConnection();
+        sockKey = sock.register(selector, SelectionKey.OP_CONNECT);//注册SocketChannel到Selector上 OP_CONNECTION事件 selector.select()会阻塞到OP_CONNECTION事件就绪
+        boolean immediateConnect = sock.connect(addr); //连接远程zookeeper服务端
+        if (immediateConnect) {//连接成功远程zookeeper服务端
+            sendThread.primeConnection();//发送创建会话请求
         }
     }
     
     @Override
     void connect(InetSocketAddress addr) throws IOException {
-        SocketChannel sock = createSock();
+        SocketChannel sock = createSock();//创建SocketChannel
         try {
-           registerAndConnect(sock, addr);
+           registerAndConnect(sock, addr);//连接并注册
         } catch (IOException e) {
             LOG.error("Unable to open socket to " + addr);
             sock.close();
             throw e;
         }
+        //初始化initialized初始为false 在doIO处理中作为特殊处理第一次请求建立会话标识
         initialized = false;
 
         /*
+         * 重置incomingBuffer position归0  limit=capacity
          * Reset incomingBuffer
          */
         lenBuffer.clear();
@@ -271,7 +274,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
     @Override
     void doTransport(int waitTimeOut, List<Packet> pendingQueue, LinkedList<Packet> outgoingQueue )
             throws IOException, InterruptedException {
-        selector.select(waitTimeOut);
+        selector.select(waitTimeOut);//阻塞直到OP_CONNECT(第一次建立会话) OP_READ OP_WRITE
         Set<SelectionKey> selected;
         synchronized (this) {
             selected = selector.selectedKeys();
@@ -282,21 +285,21 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         updateNow();
         for (SelectionKey k : selected) {
             SocketChannel sc = ((SocketChannel) k.channel());
-            if ((k.readyOps() & SelectionKey.OP_CONNECT) != 0) {
+            if ((k.readyOps() & SelectionKey.OP_CONNECT) != 0) {//OP_CONNECT 事件就绪
                 if (sc.finishConnect()) {
                     updateLastSendAndHeard();
                     sendThread.primeConnection();
                 }
-            } else if ((k.readyOps() & (SelectionKey.OP_READ | SelectionKey.OP_WRITE)) != 0) {
-                doIO(pendingQueue, outgoingQueue);
+            } else if ((k.readyOps() & (SelectionKey.OP_READ | SelectionKey.OP_WRITE)) != 0) {//OP_READ或OP_WRITE事件就绪
+                doIO(pendingQueue, outgoingQueue);//发送或读取相应内容
             }
         }
-        if (sendThread.getZkState().isConnected()) {
+        if (sendThread.getZkState().isConnected()) {//如果已经建立连接
             synchronized(outgoingQueue) {
-                if (!outgoingQueue.isEmpty()) {
+                if (!outgoingQueue.isEmpty()) {//outgoing为empty则为通道添加OP_WRITE事件监听
                     enableWrite();
                 } else {
-                    disableWrite();
+                    disableWrite();//否则移除OP_WRITE事件监听
                 }
             }
         }

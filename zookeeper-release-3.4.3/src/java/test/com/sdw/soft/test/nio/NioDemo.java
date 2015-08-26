@@ -34,7 +34,7 @@ public class NioDemo {
 					ServerSocketChannel server = (ServerSocketChannel)selectionKey.channel();
 					SocketChannel socketChannel = server.accept();//获得和客户端连接的通道
 					socketChannel.configureBlocking(false);//设置为非阻塞
-					socketChannel.write(ByteBuffer.wrap("from server,  send the msg .".getBytes()));
+					socketChannel.write(ByteBuffer.wrap("from server,  connect successfully .".getBytes()));
 					socketChannel.register(selector, SelectionKey.OP_READ);//在和客户端连接成功之后，为了可以接收到客户端的信息，需要给通道设置读的权限
 				 }else if(selectionKey.isReadable()){
 					 SocketChannel channel = (SocketChannel) selectionKey.channel();
@@ -43,6 +43,11 @@ public class NioDemo {
 					 String msg = new String(buffer.array());
 					 System.out.println("server receive the msg =" + msg);
 					 channel.write(ByteBuffer.wrap(msg.getBytes()));//将消息回写到客户端
+					 channel.register(selector, SelectionKey.OP_WRITE);
+				 }else if(selectionKey.isWritable()){
+					 SocketChannel channel = (SocketChannel)selectionKey.channel();
+					 channel.write(ByteBuffer.wrap("server say:你先说吧".getBytes()));
+					 channel.register(selector, SelectionKey.OP_READ);
 				 }
 			 }
 		 }

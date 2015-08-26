@@ -41,7 +41,7 @@ public final class StaticHostProvider implements HostProvider {
     private final List<InetSocketAddress> serverAddresses = new ArrayList<InetSocketAddress>(
             5);
 
-    private int lastIndex = -1;//指向最后一个host地址
+    private int lastIndex = -1;//指向上次连接的host地址
 
     private int currentIndex = -1;//指向当前host地址
 

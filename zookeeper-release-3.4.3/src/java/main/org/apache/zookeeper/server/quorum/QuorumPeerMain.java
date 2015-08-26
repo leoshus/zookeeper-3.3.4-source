@@ -98,7 +98,7 @@ public class QuorumPeerMain {
     {
         QuorumPeerConfig config = new QuorumPeerConfig();
         if (args.length == 1) {
-            config.parse(args[0]);
+            config.parse(args[0]);//解析zoo.cfg配置文件
         }
 
         // Start and schedule the the purge task

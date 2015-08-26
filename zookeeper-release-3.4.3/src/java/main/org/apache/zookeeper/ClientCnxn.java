@@ -378,7 +378,7 @@ public class ClientCnxn {
             long sessionId, byte[] sessionPasswd, boolean canBeReadOnly) {
         this.zooKeeper = zooKeeper;
         this.watcher = watcher;
-        this.sessionId = sessionId;
+        this.sessionId = sessionId;//初始为0
         this.sessionPasswd = sessionPasswd;
         this.sessionTimeout = sessionTimeout;
         this.hostProvider = hostProvider;
@@ -483,6 +483,7 @@ public class ClientCnxn {
             // materialize the watchers based on the event
             //materialize从WatchManager中取出对应KeeperStat、EventType、Path的watcher
             //WatcherSetEventPair 表示了一个Watcher集合以及对应Watcher的WatchedEvent的数据结构
+            //从WatcherManager中获取WatchedEvent对应需要通知的Watcher
             WatcherSetEventPair pair = new WatcherSetEventPair(
                     watcher.materialize(event.getState(), event.getType(),
                             event.getPath()),
@@ -503,6 +504,10 @@ public class ClientCnxn {
           }
        }
 
+       /**
+        * 建立连接失败或断开连接 加入"毒丸" 
+        * @date 2015年8月26日 下午6:32:02
+        */
         public void queueEventOfDeath() {
             waitingEvents.add(eventOfDeath);
         }
@@ -516,7 +521,7 @@ public class ClientCnxn {
                  if (event == eventOfDeath) {
                     wasKilled = true;
                  } else {
-                	 //处理watcher
+                	 //处理watcher  完成Watcher的实际回调处理 process()
                     processEvent(event);
                  }
                  if (wasKilled)
@@ -869,15 +874,21 @@ public class ClientCnxn {
         ClientCnxnSocket getClientCnxnSocket() {
             return clientCnxnSocket;
         }
-
+        /**
+         * zookeeper客户端成功连接到服务端 开始拼装发送建立会话的请求 
+         * @date 2015年8月26日 下午3:23:18
+         * 
+         * @throws IOException
+         */
         void primeConnection() throws IOException {
             LOG.info("Socket connection established to "
                      + clientCnxnSocket.getRemoteSocketAddress()
                      + ", initiating session");
             isFirstConnect = false;
-            long sessId = (seenRwServerBefore) ? sessionId : 0;
+            long sessId = (seenRwServerBefore) ? sessionId : 0;//默认初始为0
+            //拼装连接请求
             ConnectRequest conReq = new ConnectRequest(0, lastZxid,
-                    sessionTimeout, sessId, sessionPasswd);
+                    sessionTimeout, sessId, sessionPasswd);//初始lastZxid=0
             synchronized (outgoingQueue) {
                 // We add backwards since we are pushing into the front
                 // Only send if there's a pending watch
@@ -909,7 +920,7 @@ public class ClientCnxn {
                 outgoingQueue.addFirst(new Packet(null, null, conReq,
                             null, null, readOnly));
             }
-            clientCnxnSocket.enableReadWriteOnly();
+            clientCnxnSocket.enableReadWriteOnly();//为通道添加OP_READ 和 OP_WRITE事件关注
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Session establishment request sent on "
                         + clientCnxnSocket.getRemoteSocketAddress());
@@ -954,7 +965,7 @@ public class ClientCnxn {
          * @throws IOException
          */
         private void startConnect() throws IOException {
-            state = States.CONNECTING;
+            state = States.CONNECTING;//改变当前客户端的状态为CONNECTIONG
 
             InetSocketAddress addr;
             if (rwServerAddress != null) {
@@ -969,8 +980,9 @@ public class ClientCnxn {
             setName(getName().replaceAll("\\(.*\\)",
                     "(" + addr.getHostName() + ":" + addr.getPort() + ")"));
             try {
+            	//SASL-authenticate  JAAS  默认不进行SASL-authenticate
                 zooKeeperSaslClient = new ZooKeeperSaslClient("zookeeper/"+addr.getHostName());
-            } catch (LoginException e) {
+            } catch (LoginException e) {//SASL认证失败
                 LOG.warn("SASL authentication failed: " + e + " Will continue connection to Zookeeper server without "
                         + "SASL authentication, if Zookeeper server allows it.");
                 eventThread.queueEvent(new WatchedEvent(
@@ -1006,7 +1018,7 @@ public class ClientCnxn {
                             break;
                         }
                         //首次连接发送 创建会话的请求
-                        startConnect();
+                        startConnect();//将请求建立连接的Packet报文放入outgoingQueue队列中
                         clientCnxnSocket.updateLastSendAndHeard();//更新最近一次的请求和心跳的时间
                     }
 
@@ -1067,7 +1079,7 @@ public class ClientCnxn {
                         }
                         to = Math.min(to, pingRwTimeout - idlePingRwServer);
                     }
-
+                    //发送、接收请求
                     clientCnxnSocket.doTransport(to, pendingQueue, outgoingQueue);
 
                 } catch (Throwable e) {
@@ -1187,13 +1199,13 @@ public class ClientCnxn {
         void onConnected(int _negotiatedSessionTimeout, long _sessionId,
                 byte[] _sessionPasswd, boolean isRO) throws IOException {
             negotiatedSessionTimeout = _negotiatedSessionTimeout;
-            if (negotiatedSessionTimeout <= 0) {
+            if (negotiatedSessionTimeout <= 0) {//建立会话超时
                 state = States.CLOSED;
 
                 eventThread.queueEvent(new WatchedEvent(
                         Watcher.Event.EventType.None,
-                        Watcher.Event.KeeperState.Expired, null));
-                eventThread.queueEventOfDeath();
+                        Watcher.Event.KeeperState.Expired, null));//将过期时间放入waitingEvents队列中
+                eventThread.queueEventOfDeath();//向waitingEvents队列中添加"毒丸"
                 throw new SessionExpiredException(
                         "Unable to reconnect to ZooKeeper service, session 0x"
                                 + Long.toHexString(sessionId) + " has expired");
@@ -1201,13 +1213,13 @@ public class ClientCnxn {
             if (!readOnly && isRO) {
                 LOG.error("Read/write client got connected to read-only server");
             }
-            readTimeout = negotiatedSessionTimeout * 2 / 3;
-            connectTimeout = negotiatedSessionTimeout / hostProvider.size();
-            hostProvider.onConnected();
+            readTimeout = negotiatedSessionTimeout * 2 / 3;//读超时时间
+            connectTimeout = negotiatedSessionTimeout / hostProvider.size();//连接超时
+            hostProvider.onConnected();//将currentIndex 赋值给lastIndex(保存作为宕机时的上次连接的host address)
             sessionId = _sessionId;
             sessionPasswd = _sessionPasswd;
             state = (isRO) ?
-                    States.CONNECTEDREADONLY : States.CONNECTED;
+                    States.CONNECTEDREADONLY : States.CONNECTED;//通过服务端返回的ReadOnly来判断设置客户端当前状态
             seenRwServerBefore |= !isRO;
             LOG.info("Session establishment complete on server "
                     + clientCnxnSocket.getRemoteSocketAddress()
@@ -1215,10 +1227,10 @@ public class ClientCnxn {
                     + ", negotiated timeout = " + negotiatedSessionTimeout
                     + (isRO ? " (READ-ONLY mode)" : ""));
             KeeperState eventState = (isRO) ?
-                    KeeperState.ConnectedReadOnly : KeeperState.SyncConnected;
+                    KeeperState.ConnectedReadOnly : KeeperState.SyncConnected;//通过服务端返回的ReadOnly来判断设置客户端当前通知状态
             eventThread.queueEvent(new WatchedEvent(
                     Watcher.Event.EventType.None,
-                    eventState, null));
+                    eventState, null));//将WatchedEvent放入waitingEvents等待处理
         }
 
         void close() {
