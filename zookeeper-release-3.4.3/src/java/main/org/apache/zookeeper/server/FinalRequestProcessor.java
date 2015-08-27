@@ -112,7 +112,7 @@ public class FinalRequestProcessor implements RequestProcessor {
             if (request.hdr != null) {
                TxnHeader hdr = request.hdr;
                Record txn = request.txn;
-
+             //对于事务型请求，处理之  
                rc = zks.processTxn(hdr, txn);
             }
             // do not add non quorum packets to the queue.
@@ -177,7 +177,7 @@ public class FinalRequestProcessor implements RequestProcessor {
                 lastOp = "SESS";
                 cnxn.updateStatsForResponse(request.cxid, request.zxid, lastOp,
                         request.createTime, System.currentTimeMillis());
-
+              //在这里写回response  
                 zks.finishSessionInit(request.cnxn, true);
                 return;
             }

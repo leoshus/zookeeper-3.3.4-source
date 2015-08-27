@@ -93,11 +93,14 @@ public class SyncRequestProcessor extends Thread implements RequestProcessor {
             int randRoll = r.nextInt(snapCount/2);
             while (true) {
                 Request si = null;
+                //flush队列如果为空 阻塞等待 代表之前的请求都被处理了
                 if (toFlush.isEmpty()) {
                     si = queuedRequests.take();
                 } else {
+                	//如果不为空，就是说还有请求等待处理，先非阻塞拿一下，如果系统压力小，正好没有请求进来，则处理之前积压的请求
+                	//如果系统压力大，则可能需要flush满1000个才会继续处理  
                     si = queuedRequests.poll();
-                    if (si == null) {
+                    if (si == null) {//任务queue空闲，处理积压的待flush请求 
                         flush(toFlush);
                         continue;
                     }
@@ -107,13 +110,19 @@ public class SyncRequestProcessor extends Thread implements RequestProcessor {
                 }
                 if (si != null) {
                     // track the number of records written to the log
+                	//将Request append到log输出流，先序列化再append，注意此时request还没flush到磁盘，还在内存呢  
                     if (zks.getZKDatabase().append(si)) {
-                        logCount++;
+                        logCount++;//成功计数器  
+                        //如果成功append的request累计数量大于某个值，则执行flush log的操作  
+                        //并启动一个线程异步将内存里的Database和session状态写入到snapshot文件，相当于一个checkpoint  
+                        //snapCount默认是100000  
                         if (logCount > (snapCount / 2 + randRoll)) {
                             randRoll = r.nextInt(snapCount/2);
                             // roll the log
+                            //将内存中的log flush到磁盘  
                             zks.getZKDatabase().rollLog();
                             // take a snapshot
+                            //启动线程异步将内存中的database和sessions状态写入snapshot文件中  
                             if (snapInProcess != null && snapInProcess.isAlive()) {
                                 LOG.warn("Too busy to snap, skipping");
                             } else {
@@ -130,6 +139,7 @@ public class SyncRequestProcessor extends Thread implements RequestProcessor {
                             }
                             logCount = 0;
                         }
+                        //如果是写请求，而且flush队列为空，执行往下执行   
                     } else if (toFlush.isEmpty()) {
                         // optimization for read heavy workloads
                         // iff this is a read, and there are no pending
@@ -141,7 +151,9 @@ public class SyncRequestProcessor extends Thread implements RequestProcessor {
                         }
                         continue;
                     }
+                  //写请求前面append到log输出流后，在这里加入到flush队列，后续批量处理  
                     toFlush.add(si);
+                    //如果系统压力大，可能需要到1000个request才会flush，flush之后可以被后续processor处理  
                     if (toFlush.size() > 1000) {
                         flush(toFlush);
                     }
@@ -158,10 +170,12 @@ public class SyncRequestProcessor extends Thread implements RequestProcessor {
     private void flush(LinkedList<Request> toFlush) throws IOException {
         if (toFlush.isEmpty())
             return;
-
+        //将之前的append log flush到磁盘，并顺便关闭旧的log文件句柄  
         zks.getZKDatabase().commit();
+      //log flush完后，开始处理flush队列里的Request  
         while (!toFlush.isEmpty()) {
             Request i = toFlush.remove();
+          //执行后面的processor  
             nextProcessor.processRequest(i);
         }
         if (nextProcessor instanceof Flushable) {

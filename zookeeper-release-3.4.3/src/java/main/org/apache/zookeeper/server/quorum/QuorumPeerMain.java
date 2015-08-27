@@ -128,7 +128,8 @@ public class QuorumPeerMain {
       try {
     	  //创建与客户端交互 可通过zookeeper.serverCnxnFactory来设置 默认实现为NIOServerCnxnFactory
           ServerCnxnFactory cnxnFactory = ServerCnxnFactory.createFactory();
-          cnxnFactory.configure(config.getClientPortAddress(),//初始化一个ServerSocketChannel处理客户端的请求
+          //初始化一个ServerSocketChannel处理客户端的请求
+          cnxnFactory.configure(config.getClientPortAddress(),
                                 config.getMaxClientCnxns());
   
           quorumPeer = new QuorumPeer();

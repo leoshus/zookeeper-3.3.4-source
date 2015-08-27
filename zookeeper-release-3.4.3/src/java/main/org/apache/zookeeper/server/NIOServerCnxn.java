@@ -150,20 +150,23 @@ public class NIOServerCnxn extends ServerCnxn {
                 // We check if write interest here because if it is NOT set,
                 // nothing is queued, so we can try to send the buffer right
                 // away without waking up the selector
+            	//确保可写  
                 if ((sk.interestOps() & SelectionKey.OP_WRITE) == 0) {
                     try {
+                    	//写回client
                         sock.write(bb);
                     } catch (IOException e) {
                         // we are just doing best effort right now
                     }
                 }
                 // if there is nothing left to send, we are done
+                //一次写完
                 if (bb.remaining() == 0) {
                     packetSent();
                     return;
                 }
             }
-
+            //如果一次没写完，添加到输出队列，后续继续写  
             synchronized(this.factory){
                 sk.selector().wakeup();
                 if (LOG.isTraceEnabled()) {
@@ -184,6 +187,7 @@ public class NIOServerCnxn extends ServerCnxn {
     /** Read the request payload (everything following the length prefix) */
     private void readPayload() throws IOException, InterruptedException {
         if (incomingBuffer.remaining() != 0) { // have we read length bytes?
+        	//尝试一次读进来
             int rc = sock.read(incomingBuffer); // sock is non-blocking, so ok
             if (rc < 0) {
                 throw new EndOfStreamException(
@@ -192,15 +196,18 @@ public class NIOServerCnxn extends ServerCnxn {
                         + ", likely client has closed socket");
             }
         }
-
+        //一次读完
         if (incomingBuffer.remaining() == 0) { // have we read length bytes?
+        	//server 的Packet统计
             packetReceived();
+            //准备读这部分数据
             incomingBuffer.flip();
-            if (!initialized) {
+            if (!initialized) {//session尚未初始化 这个请求必定是ConnectRequest
                 readConnectRequest();
-            } else {
+            } else {//处理其他请求
                 readRequest();
             }
+            //清理现场为下一个packet读做准备
             lenBuffer.clear();
             incomingBuffer = lenBuffer;
         }
@@ -215,6 +222,7 @@ public class NIOServerCnxn extends ServerCnxn {
                 return;
             }
             if (k.isReadable()) {
+            	//先从Channel读4个字节 代表头
                 int rc = sock.read(incomingBuffer);
                 if (rc < 0) {
                     throw new EndOfStreamException(
@@ -222,16 +230,21 @@ public class NIOServerCnxn extends ServerCnxn {
                             + Long.toHexString(sessionId)
                             + ", likely client has closed socket");
                 }
+                //rc读取完成 继续读
                 if (incomingBuffer.remaining() == 0) {
                     boolean isPayload;
+                    //incomingBuffer与lenBuffer相等 则继续读下一个请求
                     if (incomingBuffer == lenBuffer) { // start of next request
                         incomingBuffer.flip();
+                        //为incomingBuffer分配一个length长度的内存 将后续的数据都读进来
                         isPayload = readLength(k);
+                        //clear 准备写
                         incomingBuffer.clear();
                     } else {
                         // continuation
                         isPayload = true;
                     }
+                    //准备读后续数据
                     if (isPayload) { // not the case for 4letterword
                         readPayload();
                     }
@@ -418,8 +431,9 @@ public class NIOServerCnxn extends ServerCnxn {
         if (zkServer == null) {
             throw new IOException("ZooKeeperServer not running");
         }
+        //开始执行ConnectRequest的处理链
         zkServer.processConnectRequest(this, incomingBuffer);
-        initialized = true;
+        initialized = true;//会话建立完毕
     }
 
     /**

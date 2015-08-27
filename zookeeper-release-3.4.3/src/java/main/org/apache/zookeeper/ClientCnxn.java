@@ -380,12 +380,13 @@ public class ClientCnxn {
         this.watcher = watcher;
         this.sessionId = sessionId;//初始为0
         this.sessionPasswd = sessionPasswd;
+        //客户端设置的超时时间
         this.sessionTimeout = sessionTimeout;
-        this.hostProvider = hostProvider;
+        this.hostProvider = hostProvider;//主机列表
         this.chrootPath = chrootPath;
-
+        //连接超时
         connectTimeout = sessionTimeout / hostProvider.size();
-        readTimeout = sessionTimeout * 2 / 3;
+        readTimeout = sessionTimeout * 2 / 3;//读超时
         readOnly = canBeReadOnly;
 
         sendThread = new SendThread(clientCnxnSocket);
@@ -478,17 +479,20 @@ public class ClientCnxn {
                     && sessionState == event.getState()) {
                 return;
             }
+            //EventThread同步session状态  
             sessionState = event.getState();
 
             // materialize the watchers based on the event
             //materialize从WatchManager中取出对应KeeperStat、EventType、Path的watcher
             //WatcherSetEventPair 表示了一个Watcher集合以及对应Watcher的WatchedEvent的数据结构
             //从WatcherManager中获取WatchedEvent对应需要通知的Watcher
+            //找出那些需要被通知的watcher，主线程直接调用对应watcher接口即可  
             WatcherSetEventPair pair = new WatcherSetEventPair(
                     watcher.materialize(event.getState(), event.getType(),
                             event.getPath()),
                             event);
             // queue the pair (watch set & event) for later processing
+            //提交异步队列处理  
             //将watch set & event对 放入waitingEvents这个待处理的Watcher队列中，EventThread的run方法会不断对该队列进行处理
             waitingEvents.add(pair);
         }
@@ -517,7 +521,7 @@ public class ClientCnxn {
            try {
               isRunning = true;
               while (true) {
-                 Object event = waitingEvents.take();
+                 Object event = waitingEvents.take();//获取事件
                  if (event == eventOfDeath) {
                     wasKilled = true;
                  } else {
@@ -1013,7 +1017,7 @@ public class ClientCnxn {
             long lastPingRwServer = System.currentTimeMillis();
             while (state.isAlive()) {
                 try {
-                    if (!clientCnxnSocket.isConnected()) {
+                    if (!clientCnxnSocket.isConnected()) {//判断是否连接上 实际是判断socKey是否注册上 (可能已经连接 但是sockey未注册成功)
                         if(!isFirstConnect){
                             try {
                                 Thread.sleep(r.nextInt(1000));
@@ -1048,11 +1052,13 @@ public class ClientCnxn {
                                   Watcher.Event.KeeperState.SaslAuthenticated, null));
                             }
                         }
+                        //连接上  下次select超时时间 clientCnxnSocket.getIdleRecv()= now - lastHeard
                         to = readTimeout - clientCnxnSocket.getIdleRecv();
                     } else {
+                    	//若未连接上  递减超时时间
                         to = connectTimeout - clientCnxnSocket.getIdleRecv();
                     }
-                    
+                    //session超时 包含连接超时
                     if (to <= 0) {
                         throw new SessionTimeoutException(
                                 "Client session timed out, have not heard from server in "
@@ -1060,13 +1066,13 @@ public class ClientCnxn {
                                         + " for sessionid 0x"
                                         + Long.toHexString(sessionId));
                     }
-                    if (state.isConnected()) {
+                    if (state.isConnected()) {//如果send空闲 则发送心跳包
                         int timeToNextPing = readTimeout / 2
                                 - clientCnxnSocket.getIdleSend();
                         if (timeToNextPing <= 0) {
                             sendPing();
-                            clientCnxnSocket.updateLastSend();
-                            clientCnxnSocket.enableWrite();
+                            clientCnxnSocket.updateLastSend();//更新lastSend
+                            clientCnxnSocket.enableWrite();//添加OP_WRITE监听
                         } else {
                             if (timeToNextPing < to) {
                                 to = timeToNextPing;
@@ -1075,6 +1081,7 @@ public class ClientCnxn {
                     }
 
                     // If we are in read-only mode, seek for read/write server
+                    //如果当前是只读模式 则寻找read/write服务器 如果找到 则清理之前的连接 并重新连接到R/W服务器
                     if (state == States.CONNECTEDREADONLY) {
                         long now = System.currentTimeMillis();
                         int idlePingRwServer = (int) (now - lastPingRwServer);
@@ -1083,6 +1090,7 @@ public class ClientCnxn {
                             idlePingRwServer = 0;
                             pingRwTimeout =
                                 Math.min(2*pingRwTimeout, maxPingRwTimeout);
+                            //同步测试下一个server是否是R/W服务器,如果是则抛出RWServerFoundException
                             pingRwServer();
                         }
                         to = Math.min(to, pingRwTimeout - idlePingRwServer);
@@ -1118,6 +1126,7 @@ public class ClientCnxn {
                                             + ", unexpected error"
                                             + RETRY_CONN_MSG, e);
                         }
+                        //清理之前的连接 找下一台server连接
                         cleanup();
                         if (state.isAlive()) {
                             eventThread.queueEvent(new WatchedEvent(
@@ -1221,11 +1230,13 @@ public class ClientCnxn {
             if (!readOnly && isRO) {
                 LOG.error("Read/write client got connected to read-only server");
             }
+            //初始化client端的session相关参数  
             readTimeout = negotiatedSessionTimeout * 2 / 3;//读超时时间
             connectTimeout = negotiatedSessionTimeout / hostProvider.size();//连接超时
             hostProvider.onConnected();//将currentIndex 赋值给lastIndex(保存作为宕机时的上次连接的host address)
             sessionId = _sessionId;
             sessionPasswd = _sessionPasswd;
+            //修改CONNECT状态  
             state = (isRO) ?
                     States.CONNECTEDREADONLY : States.CONNECTED;//通过服务端返回的ReadOnly来判断设置客户端当前状态
             seenRwServerBefore |= !isRO;
@@ -1234,6 +1245,7 @@ public class ClientCnxn {
                     + ", sessionid = 0x" + Long.toHexString(sessionId)
                     + ", negotiated timeout = " + negotiatedSessionTimeout
                     + (isRO ? " (READ-ONLY mode)" : ""));
+            //触发一个SyncConnected事件，这里有专门的EventThread会异步通知注册的watcher来处理  
             KeeperState eventState = (isRO) ?
                     KeeperState.ConnectedReadOnly : KeeperState.SyncConnected;//通过服务端返回的ReadOnly来判断设置客户端当前通知状态
             eventThread.queueEvent(new WatchedEvent(

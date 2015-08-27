@@ -58,8 +58,9 @@ public class ZookeeperDemo implements Watcher{
 	@Test
 	public void test02(){
 		try {
-			zookeeper = new ZooKeeper("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183",TIME_OUT,new ExtWatcher());
+			zookeeper = new ZooKeeper("127.0.0.1:2181,192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183",TIME_OUT,new ExtWatcher());
 			countdown.await();
+			zookeeper.create("/servers", "servers".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 			zookeeper.create("/servers/app3", "test app3".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
 			zookeeper.getChildren("/servers", true, new ExtChildren2Callback(), "I am context");
 			Thread.sleep(Integer.MAX_VALUE);

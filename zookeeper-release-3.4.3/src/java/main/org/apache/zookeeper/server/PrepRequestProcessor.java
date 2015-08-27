@@ -73,6 +73,7 @@ import org.apache.zookeeper.txn.TxnHeader;
  * state of the system. It counts on ZooKeeperServer to update
  * outstandingRequests, so that it can take into account transactions that are
  * in the queue to be applied when generating a transaction.
+ * 主要负责request的header和txn参数 相当于预处理
  */
 public class PrepRequestProcessor extends Thread implements RequestProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(PrepRequestProcessor.class);
@@ -127,6 +128,7 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
                 if (Request.requestOfDeath == request) {
                     break;
                 }
+                //对CREATE_SESSION具体处理
                 pRequest(request);
             }
         } catch (InterruptedException e) {
@@ -432,8 +434,10 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
                 addChangeRecord(nodeRecord);
                 break;
             case OpCode.createSession:
+            	//读session超时
                 request.request.rewind();
                 int to = request.request.getInt();
+                //组装具体的Record实现,这里是创建CreateSessionTxn 方便后续processor处理
                 request.txn = new CreateSessionTxn(to);
                 request.request.rewind();
                 zks.sessionTracker.addSession(request.sessionId, to);
@@ -593,6 +597,7 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
             //create/close session don't require request record
             case OpCode.createSession:
             case OpCode.closeSession:
+            	//组装Request的header和txh实现 方便后续processor处理
                 pRequest2Txn(request.type, zks.getNextZxid(), request, null, true);
                 break;
  
@@ -642,6 +647,7 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
             }
         }
         request.zxid = zks.getZxid();
+        //让后续的processor处理 一般是异步处理提高性能
         nextProcessor.processRequest(request);
     }
 

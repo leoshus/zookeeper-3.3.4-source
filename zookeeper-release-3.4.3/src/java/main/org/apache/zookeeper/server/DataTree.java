@@ -776,6 +776,7 @@ public class DataTree {
 
     public ProcessTxnResult processTxn(TxnHeader header, Record txn)
     {
+    	//在这里构造一个Result对象，返回给FinalRequestProcessor  
         ProcessTxnResult rc = new ProcessTxnResult();
 
         String debug = "";

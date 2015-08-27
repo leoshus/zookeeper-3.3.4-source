@@ -89,6 +89,12 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
     }
 
     Thread thread;
+    /**
+     * @param addr 
+     * @param maxcc(maxClientCnxns)服务端最多运行客户端的
+     * (non-Javadoc)
+     * @see org.apache.zookeeper.server.ServerCnxnFactory#configure(java.net.InetSocketAddress, int)
+     */
     @Override
     public void configure(InetSocketAddress addr, int maxcc) throws IOException {
         if (System.getProperty("java.security.auth.login.config") != null) {
@@ -216,11 +222,17 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
                             SelectionKey sk = sc.register(selector,
                                     SelectionKey.OP_READ);
                             NIOServerCnxn cnxn = createConnection(sc, sk);//创建一个连接
+                            System.out.println("OP_ACCEPT--------"+cnxn);
                             sk.attach(cnxn);
                             addCnxn(cnxn);
                         }
                     } else if ((k.readyOps() & (SelectionKey.OP_READ | SelectionKey.OP_WRITE)) != 0) {//OP_READ或OP_WRITE事件准备就绪
                         NIOServerCnxn c = (NIOServerCnxn) k.attachment();
+                        if((k.readyOps() & SelectionKey.OP_READ) != 0){
+                        	System.out.println("OP_READ---------" + c);
+                        }else if((k.readyOps() & SelectionKey.OP_WRITE) != 0){
+                        	System.out.println("OP_WRITE---------" + c);
+                        }
                         c.doIO(k);
                     } else {
                         if (LOG.isDebugEnabled()) {
@@ -229,7 +241,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
                         }
                     }
                 }
-                selected.clear();
+                selected.clear();//清空事件 防止重复处理
             } catch (RuntimeException e) {
                 LOG.warn("Ignoring unexpected runtime exception", e);
             } catch (Exception e) {

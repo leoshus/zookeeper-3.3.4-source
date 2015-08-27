@@ -63,6 +63,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
             throw new IOException("Socket is null!");
         }
         if (sockKey.isReadable()) {//当前读事件就绪
+        	//先读包的长度，一个int  
             int rc = sock.read(incomingBuffer);
             if (rc < 0) {
                 throw new EndOfStreamException(
@@ -70,21 +71,23 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                                 + Long.toHexString(sessionId)
                                 + ", likely server has closed socket");
             }
+            //如果读满，注意这里同一个包，要读2次，第一次读长度，第二次读内容，incomingBuffer重用  
             if (!incomingBuffer.hasRemaining()) {
                 incomingBuffer.flip();//position=0 limit=读取完毕是的position
+                //如果读的是长度  
                 if (incomingBuffer == lenBuffer) {
                     recvCount++;
-                    readLength();
-                } else if (!initialized) {
-                    readConnectResult();//读取连接请求的响应信息
+                    readLength();//给incomingBuffer分配包长度的空间
+                } else if (!initialized) {//如果还未初始化，就是session还没建立，那server端返回的必须是ConnectResponse         
+                    readConnectResult();//读取连接请求的响应信息   读取ConnectRequest，其实就是将incomingBuffer的内容反序列化成ConnectResponse对象 
                     enableRead();//将当前selectionKey 的interestOps加上OP_READ
-                    if (!outgoingQueue.isEmpty()) {
+                    if (!outgoingQueue.isEmpty()) {//如果还有写请求，确保write事件ok  
                         enableWrite();//将当前selectionKey 的interestOps加上OP_WRITE
                     }
-                    lenBuffer.clear();
+                    lenBuffer.clear();//准备读下一个响应  
                     incomingBuffer = lenBuffer;
                     updateLastHeard();
-                    initialized = true;
+                    initialized = true;//session建立完毕  
                 } else {
                     sendThread.readResponse(incomingBuffer);//读取响应数据
                     lenBuffer.clear();
@@ -97,12 +100,12 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
             LinkedList<Packet> pending = new LinkedList<Packet>();
             synchronized (outgoingQueue) {
                 if (!outgoingQueue.isEmpty()) {
-                    updateLastSend();
+                    updateLastSend();//修改上次发送时间
                     ByteBuffer pbb = outgoingQueue.getFirst().bb;//从outgoingQueue中取出请求Packet报文
                     sock.write(pbb);//将请求Packet报文包写入到SocketChannel
                     if (!pbb.hasRemaining()) {//pdd已经全部写入到SocketChannel 
-                        sentCount++;
-                        Packet p = outgoingQueue.removeFirst();//将请求Packet报文从outgoingQueue队列中移除并取 放入到pendingQueue等待服务器响应(如果是非认证和心跳请求)
+                        sentCount++;//已发送的业务Packet数量
+                        Packet p = outgoingQueue.removeFirst();//将请求Packet报文从outgoingQueue队列中移除并取 放入到pendingQueue等待服务器响应(如果是非认证和心跳请求 发送完直接扔掉)
                         if (p.requestHeader != null
                                 && p.requestHeader.getType() != OpCode.ping
                                 && p.requestHeader.getType() != OpCode.auth) {
@@ -218,10 +221,12 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
             throw e;
         }
         //初始化initialized初始为false 在doIO处理中作为特殊处理第一次请求建立会话标识
+        //false表示session尚未初始化
         initialized = false;
 
         /*
          * 重置incomingBuffer position归0  limit=capacity
+         * 重置两个读buffer 准备下一次读
          * Reset incomingBuffer
          */
         lenBuffer.clear();

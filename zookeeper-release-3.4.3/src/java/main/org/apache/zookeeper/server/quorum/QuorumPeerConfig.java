@@ -166,9 +166,9 @@ public class QuorumPeerConfig {
                 {
                     throw new ConfigException("Unrecognised peertype: " + value);
                 }
-            } else if (key.equals("autopurge.snapRetainCount")) {
+            } else if (key.equals("autopurge.snapRetainCount")) {//指定zookeeper的log和snapshot清理频率 单位是小时 需要填写一个1或者更多的整数,默认为0 表示不启动自己清理功能
                 snapRetainCount = Integer.parseInt(value);
-            } else if (key.equals("autopurge.purgeInterval")) {
+            } else if (key.equals("autopurge.purgeInterval")) {//次参数与autopurge.snapRetainCount配合使用,表示清理后保留文件的数目 默认是3个
                 purgeInterval = Integer.parseInt(value);
             } else if (key.startsWith("server.")) {// 集群参数---配置集群里的主机信息  server.[myid]=[主机IP/hostname]:[同步端口]:[选举端口]:observer
                 int dot = key.indexOf('.');
