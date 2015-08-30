@@ -218,9 +218,12 @@ public class Learner {
     protected void connectToLeader(InetSocketAddress addr) 
     throws IOException, ConnectException, InterruptedException {
         sock = new Socket();        
+        //设置读超时时间为initLimit对应时间  
         sock.setSoTimeout(self.tickTime * self.initLimit);
+        //重试5次，失败后退出follower角色，重新选举  
         for (int tries = 0; tries < 5; tries++) {
             try {
+            	//连接超时  
                 sock.connect(addr, self.tickTime * self.syncLimit);
                 sock.setTcpNoDelay(nodelay);
                 break;

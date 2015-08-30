@@ -101,7 +101,7 @@ public class SyncRequestProcessor extends Thread implements RequestProcessor {
                 	//如果系统压力大，则可能需要flush满1000个才会继续处理  
                     si = queuedRequests.poll();
                     if (si == null) {//任务queue空闲，处理积压的待flush请求 
-                        flush(toFlush);
+                        flush(toFlush); //压力小的情况 直接处理
                         continue;
                     }
                 }

@@ -586,7 +586,7 @@ public class ZooKeeper {
                 connectStringParser.getServerAddresses());
         cnxn = new ClientCnxn(connectStringParser.getChrootPath(),
                 hostProvider, sessionTimeout, this, watchManager,
-                getClientCnxnSocket(), sessionId, sessionPasswd, canBeReadOnly);
+                getClientCnxnSocket(), sessionId, sessionPasswd, canBeReadOnly);//ClientCnxnSocketNIO代表客户端与服务端的一个长连接 负责与服务端底层进行通信
         cnxn.seenRwServerBefore = true; // since user has provided sessionId
         cnxn.start();
     }
@@ -765,19 +765,22 @@ public class ZooKeeper {
         PathUtils.validatePath(clientPath, createMode.isSequential());
 
         final String serverPath = prependChroot(clientPath);
-
+        
+        //请求头
         RequestHeader h = new RequestHeader();
         h.setType(ZooDefs.OpCode.create);
+        //请求体
         CreateRequest request = new CreateRequest();
+        //create请求需要server端的响应
         CreateResponse response = new CreateResponse();
         request.setData(data);
-        request.setFlags(createMode.toFlag());
+        request.setFlags(createMode.toFlag());//节点类型 P/E
         request.setPath(serverPath);
         if (acl != null && acl.size() == 0) {
             throw new KeeperException.InvalidACLException();
         }
         request.setAcl(acl);
-        ReplyHeader r = cnxn.submitRequest(h, request, response, null);
+        ReplyHeader r = cnxn.submitRequest(h, request, response, null);//同步请求
         if (r.getErr() != 0) {
             throw KeeperException.create(KeeperException.Code.get(r.getErr()),
                     clientPath);

@@ -268,7 +268,7 @@ public class FinalRequestProcessor implements RequestProcessor {
                     throw new KeeperException.BadArgumentsException();
                 }
                 Stat stat = zks.getZKDatabase().statNode(path, existsRequest
-                        .getWatch() ? cnxn : null);
+                        .getWatch() ? cnxn : null);//此次的watcher即当前server端对应客户端的连接NIOServerCnxn
                 rsp = new ExistsResponse(stat);
                 break;
             }

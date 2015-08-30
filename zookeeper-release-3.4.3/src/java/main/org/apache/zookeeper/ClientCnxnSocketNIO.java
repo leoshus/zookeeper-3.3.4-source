@@ -78,8 +78,10 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                 if (incomingBuffer == lenBuffer) {
                     recvCount++;
                     readLength();//给incomingBuffer分配包长度的空间
-                } else if (!initialized) {//如果还未初始化，就是session还没建立，那server端返回的必须是ConnectResponse         
-                    readConnectResult();//读取连接请求的响应信息   读取ConnectRequest，其实就是将incomingBuffer的内容反序列化成ConnectResponse对象 
+                } else if (!initialized) {//如果还未初始化，就是session还没建立，那server端返回的必须是ConnectResponse      
+                	
+                    readConnectResult();//读取连接请求的响应信息   读取ConnectRequest，其实就是将incomingBuffer的内容反序列化成ConnectResponse对象
+                    
                     enableRead();//将当前selectionKey 的interestOps加上OP_READ
                     if (!outgoingQueue.isEmpty()) {//如果还有写请求，确保write事件ok  
                         enableWrite();//将当前selectionKey 的interestOps加上OP_WRITE

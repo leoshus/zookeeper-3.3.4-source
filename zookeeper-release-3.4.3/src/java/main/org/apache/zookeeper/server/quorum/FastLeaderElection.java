@@ -412,14 +412,14 @@ public class FastLeaderElection implements Election {
          * @param manager   Connection manager
          */
         Messenger(QuorumCnxManager manager) {
-
+        	//启动业务层发送线程，将消息发给IO负责类QuorumCnxManager
             this.ws = new WorkerSender(manager);
 
             Thread t = new Thread(this.ws,
                     "WorkerSender[myid=" + self.getId() + "]");
             t.setDaemon(true);
             t.start();
-
+            //启动业务层接受线程，从IO负责类QuorumCnxManager接受消息
             this.wr = new WorkerReceiver(manager);
 
             t = new Thread(this.wr,
@@ -742,6 +742,7 @@ public class FastLeaderElection implements Election {
                  * Remove next notification from queue, times out after 2 times
                  * the termination time
                  */
+            	//recvqueue 当前节点收到的其他节点发来的投票信息  队列
                 Notification n = recvqueue.poll(notTimeout,
                         TimeUnit.MILLISECONDS);
 
@@ -750,21 +751,22 @@ public class FastLeaderElection implements Election {
                  * Otherwise processes new notification.
                  */
                 if(n == null){
-                    if(manager.haveDelivered()){//判断消息队列中消息是否已发送完
-                        sendNotifications();
+                    if(manager.haveDelivered()){//判断消息队列中消息是否已发送完  
+                        sendNotifications();//发完消息还未选出leader  继续发消息
                     } else {
-                        manager.connectAll();
+                        manager.connectAll();//消息还在队列可能其他服务器还未启动  尝试连接
                     }
 
                     /*
                      * Exponential backoff
                      */
+                    //延迟超时时间
                     int tmpTimeOut = notTimeout*2;
                     notTimeout = (tmpTimeOut < maxNotificationInterval?
                             tmpTimeOut : maxNotificationInterval);
                     LOG.info("Notification time out: " + notTimeout);
                 }
-                else if(self.getVotingView().containsKey(n.sid)) {
+                else if(self.getVotingView().containsKey(n.sid)) {//收到来自集群的投票消息
                     /*
                      * 只处理来自集群中的投票服务器发来notification
                      * Only proceed if the vote comes from a replica in the
@@ -776,15 +778,16 @@ public class FastLeaderElection implements Election {
                         if (n.electionEpoch > logicalclock) {//返回notification中的electionEpoch大于当前的logicalclock
                             logicalclock = n.electionEpoch;
                             recvset.clear();
+                            //检查下收到的这张选票是否可以胜出，依次比较选举轮数epoch，事务zxid，服务器编号server i
                             if(totalOrderPredicate(n.leader, n.zxid, n.peerEpoch,
                                     getInitId(), getInitLastLoggedZxid(), getPeerEpoch())) {
-                                updateProposal(n.leader, n.zxid, n.peerEpoch);
+                                updateProposal(n.leader, n.zxid, n.peerEpoch);//对方胜出就把自己的投票修改对方的投票
                             } else {
                                 updateProposal(getInitId(),
                                         getInitLastLoggedZxid(),
                                         getPeerEpoch());
                             }
-                            sendNotifications();
+                            sendNotifications();//广播给集群中的其他机器
                         } else if (n.electionEpoch < logicalclock) {//响应的notification election epoch比当前的小
                             if(LOG.isDebugEnabled()){
                                 LOG.debug("Notification election epoch is smaller than logicalclock. n.electionEpoch = 0x"
@@ -804,7 +807,7 @@ public class FastLeaderElection implements Election {
                                     ", proposed zxid=0x" + Long.toHexString(n.zxid) +
                                     ", proposed election epoch=0x" + Long.toHexString(n.electionEpoch));
                         }
-
+                        //添加到本机的投票集合  用来最终选举决断
                         recvset.put(n.sid, new Vote(n.leader, n.zxid, n.electionEpoch, n.peerEpoch));
                         //如果满足结束的条件 将进入结束等待的阶段
                         if (termPredicate(recvset,
@@ -826,9 +829,10 @@ public class FastLeaderElection implements Election {
                              * relevant message from the reception queue
                              */
                             if (n == null) {
+                            	//修改状态 LEADING or FOLLOWING or OBSERVING
                                 self.setPeerState((proposedLeader == self.getId()) ?
                                         ServerState.LEADING: learningState());
-
+                                //返回最终的投票结果
                                 Vote endVote = new Vote(proposedLeader,
                                         proposedZxid, proposedEpoch);
                                 leaveInstance(endVote);
@@ -836,7 +840,8 @@ public class FastLeaderElection implements Election {
                             }
                         }
                         break;
-                    case OBSERVING:
+                        //如果收到的选票状态不是LOOKING，比如这台机器刚加入一个已经服务的zk集群时可能已经选举出来
+                    case OBSERVING://OBSERVING不参与投票选举
                         LOG.debug("Notification from observer: " + n.sid);
                         break;
                     case FOLLOWING:
@@ -846,7 +851,10 @@ public class FastLeaderElection implements Election {
                          * together.
                          */
                         if(n.electionEpoch == logicalclock){
+                        	//同样需要加入到本机的投票集合  
                             recvset.put(n.sid, new Vote(n.leader, n.zxid, n.electionEpoch, n.peerEpoch));
+                          //投票是否结束，如果结束，再确认LEADER是否有效  
+                            //如果结束，修改自己的状态并返回投票结果  
                             if(termPredicate(recvset, new Vote(n.leader,
                                             n.zxid, n.electionEpoch, n.peerEpoch, n.state))
                                             && checkLeader(outofelection, n.leader, n.electionEpoch)) {

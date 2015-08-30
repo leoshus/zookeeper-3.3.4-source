@@ -457,7 +457,7 @@ public class ClientCnxn {
      */
     class EventThread extends Thread {
         private final LinkedBlockingQueue<Object> waitingEvents =
-            new LinkedBlockingQueue<Object>();
+            new LinkedBlockingQueue<Object>();//待处理事件队列
 
         /** This is really the queued session state until the event
          * thread actually processes the event and hands it to the watcher.
@@ -752,7 +752,7 @@ public class ClientCnxn {
             ReplyHeader replyHdr = new ReplyHeader();
 
             replyHdr.deserialize(bbia, "header");
-            if (replyHdr.getXid() == -2) {
+            if (replyHdr.getXid() == -2) {//表示一个ping的返回
                 // -2 is the xid for pings
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Got ping response for sessionid: 0x"
@@ -763,7 +763,7 @@ public class ClientCnxn {
                 }
                 return;
             }
-            if (replyHdr.getXid() == -4) {
+            if (replyHdr.getXid() == -4) {//表示一个Auth返回
                 // -4 is the xid for AuthPacket               
                 if(replyHdr.getErr() == KeeperException.Code.AUTHFAILED.intValue()) {
                     state = States.AUTH_FAILED;                    
@@ -810,6 +810,7 @@ public class ClientCnxn {
                 eventThread.queueEvent( we );
                 return;
             }
+            //server端响应完毕 将对应的Packet从pendingQueue队列中移除
             Packet packet;
             synchronized (pendingQueue) {
                 if (pendingQueue.size() == 0) {
@@ -850,7 +851,7 @@ public class ClientCnxn {
                             + Long.toHexString(sessionId) + ", packet:: " + packet);
                 }
             } finally {
-                finishPacket(packet);
+                finishPacket(packet); //通知同步请求(通过packet.wait()实现) 请求已完成 packet.notifyAll()
             }
         }
 
@@ -1139,8 +1140,8 @@ public class ClientCnxn {
                     }
                 }
             }
-            cleanup();
-            clientCnxnSocket.close();
+            cleanup();//销毁socket 将sockKey设置为null while循环isConn判断后可以重建连接server
+            clientCnxnSocket.close();//关闭selector
             if (state.isAlive()) {
                 eventThread.queueEvent(new WatchedEvent(Event.EventType.None,
                         Event.KeeperState.Disconnected, null));
@@ -1320,7 +1321,7 @@ public class ClientCnxn {
                     null, watchRegistration);
         synchronized (packet) {
             while (!packet.finished) {
-                packet.wait();
+                packet.wait(); //实现同步
             }
         }
         return r;

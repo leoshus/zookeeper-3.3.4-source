@@ -132,7 +132,7 @@ public class Leader {
     Leader(QuorumPeer self,LeaderZooKeeperServer zk) throws IOException {
         this.self = self;
         try {
-            ss = new ServerSocket();
+            ss = new ServerSocket();//打开lead端口 2888
             ss.setReuseAddress(true);
             ss.bind(new InetSocketAddress(self.getQuorumAddress().getPort()));
         } catch (BindException e) {
@@ -250,9 +250,12 @@ public class Leader {
             try {
                 while (!stop) {
                     try{
-                        Socket s = ss.accept();                        
+                    	//线程在此等待连接  
+                        Socket s = ss.accept();                     
+                        //读超时设为initLimit时间  
                         s.setSoTimeout(self.tickTime * self.syncLimit);
                         s.setTcpNoDelay(nodelay);
+                        //为每个follower启动单独线程，处理IO  
                         LearnerHandler fh = new LearnerHandler(s, Leader.this);
                         fh.start();
                     } catch (SocketException e) {
@@ -302,16 +305,18 @@ public class Leader {
 
         try {
             self.tick = 0;
-            zk.loadData();
-            
+            zk.loadData();//从本地文件恢复数据
+            //leader的状态信息  
             leaderStateSummary = new StateSummary(self.getCurrentEpoch(), zk.getLastProcessedZxid());
 
             // Start thread that waits for connection requests from 
             // new followers.
+            //启动lead端口的监听线程，专门用来监听新的follower
             cnxAcceptor = new LearnerCnxAcceptor();
             cnxAcceptor.start();
             
             readyToStart = true;
+            //等待足够多的follower进来，代表自己确实是leader，此处lead线程可能会等待  
             long epoch = getEpochToPropose(self.getId(), self.getAcceptedEpoch());
             
             zk.setZxid(ZxidUtils.makeZxid(epoch, 0));
@@ -772,14 +777,16 @@ public class Leader {
             if (lastAcceptedEpoch >= epoch) {
                 epoch = lastAcceptedEpoch+1;
             }
+          //将自己加入连接队伍中，方便后续判断lead是否有效  
             connectingFollowers.add(sid);
             QuorumVerifier verifier = self.getQuorumVerifier();
+          //如果足够多的follower进入，选举有效，则无需等待，并通知其他的等待线程，类似于Barrier  
             if (connectingFollowers.contains(self.getId()) && 
                                             verifier.containsQuorum(connectingFollowers)) {
                 waitingForNewEpoch = false;
                 self.setAcceptedEpoch(epoch);
                 connectingFollowers.notifyAll();
-            } else {
+            } else { //如果进入的follower不够，则进入等待，超时即为initLimit时间，  
                 long start = System.currentTimeMillis();
                 long cur = start;
                 long end = start + self.getInitLimit()*self.getTickTime();
@@ -787,6 +794,7 @@ public class Leader {
                     connectingFollowers.wait(end - cur);
                     cur = System.currentTimeMillis();
                 }
+                //超时了，退出lead过程，重新发起选举  
                 if (waitingForNewEpoch) {
                     throw new InterruptedException("Timeout while waiting for epoch from quorum");        
                 }
@@ -806,13 +814,14 @@ public class Leader {
                 if (ss.isMoreRecentThan(leaderStateSummary)) {
                     throw new IOException("Follower is ahead of the leader");
                 }
-                electingFollowers.add(id);
+                electingFollowers.add(id);//将follower添加到等待集合  
             }
             QuorumVerifier verifier = self.getQuorumVerifier();
+          //判断是否满足选举条件，如果不满足进入等待，满足则通知其他等待线程，类似于Barrier  
             if (electingFollowers.contains(self.getId()) && verifier.containsQuorum(electingFollowers)) {
                 electionFinished = true;
                 electingFollowers.notifyAll();
-            } else {                
+            } else { //follower还不够，等等吧               
                 long start = System.currentTimeMillis();
                 long cur = start;
                 long end = start + self.getInitLimit()*self.getTickTime();

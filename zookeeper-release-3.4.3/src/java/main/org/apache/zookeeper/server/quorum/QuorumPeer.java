@@ -408,7 +408,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
     public synchronized void start() {
         loadDataBase();//加载内存数据库
         cnxnFactory.start();  //用于与客户端交互      
-        startLeaderElection();//开始选举算法
+        startLeaderElection();//根据配置初始化 选举算法
         super.start();
     }
 
@@ -417,6 +417,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
             zkDb.loadDataBase();
 
             // load the epochs
+            //从最新的zxid恢复epoch变量 zxid64位 前32位为epoch 后32位为zxid
             long lastProcessedZxid = zkDb.getDataTree().lastProcessedZxid;
     		long epochOfZxid = ZxidUtils.getEpochFromZxid(lastProcessedZxid);
             try {
@@ -584,11 +585,11 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
             le = new AuthFastLeaderElection(this, true);
             break;
         case 3:
-            qcm = new QuorumCnxManager(this);
+            qcm = new QuorumCnxManager(this);//leader 选举IO负责类
             QuorumCnxManager.Listener listener = qcm.listener;
-            if(listener != null){
+            if(listener != null){//启动已绑定的选举端口(默认为3888) 等待集群中其他机器连接
                 listener.start();
-                le = new FastLeaderElection(this, qcm);
+                le = new FastLeaderElection(this, qcm);//基于TCP的选举算法
             } else {
                 LOG.error("Null listener when initializing cnx manager");
             }
@@ -703,6 +704,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
                         };
                         try {
                             roZkMgr.start();
+                            //选举的主要逻辑 可能会消耗较长时间
                             setCurrentVote(makeLEStrategy().lookForLeader());
                         } catch (Exception e) {
                             LOG.warn("Unexpected exception",e);
@@ -738,7 +740,9 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
                 case FOLLOWING:
                     try {
                         LOG.info("FOLLOWING");
+                        //初始化Follower对象
                         setFollower(makeFollower(logFactory));
+                        //follow动作，线程在此等待 
                         follower.followLeader();
                     } catch (Exception e) {
                         LOG.warn("Unexpected exception",e);
@@ -751,8 +755,9 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
                 case LEADING:
                     LOG.info("LEADING");
                     try {
+                    	//初始化leader对象
                         setLeader(makeLeader(logFactory));
-                        leader.lead();
+                        leader.lead();//线程在这里阻塞
                         setLeader(null);
                     } catch (Exception e) {
                         LOG.warn("Unexpected exception",e);

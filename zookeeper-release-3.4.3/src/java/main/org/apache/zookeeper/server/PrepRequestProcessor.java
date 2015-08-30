@@ -128,7 +128,7 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
                 if (Request.requestOfDeath == request) {
                     break;
                 }
-                //对CREATE_SESSION具体处理
+                //对请求预处理具体处理
                 pRequest(request);
             }
         } catch (InterruptedException e) {

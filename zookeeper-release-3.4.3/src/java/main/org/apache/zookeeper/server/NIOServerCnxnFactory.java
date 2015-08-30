@@ -221,10 +221,10 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
                             sc.configureBlocking(false);
                             SelectionKey sk = sc.register(selector,
                                     SelectionKey.OP_READ);
-                            NIOServerCnxn cnxn = createConnection(sc, sk);//创建一个连接
+                            NIOServerCnxn cnxn = createConnection(sc, sk);//创建一个连接 每创建一个client连接就生成一个NIOServerCnxn
                             System.out.println("OP_ACCEPT--------"+cnxn);
                             sk.attach(cnxn);
-                            addCnxn(cnxn);
+                            addCnxn(cnxn);//将建立的NIOServerCnxn与客户端IP关联 HashMap<InetAddress, Set<NIOServerCnxn>> 用于限制客户端并发控制
                         }
                     } else if ((k.readyOps() & (SelectionKey.OP_READ | SelectionKey.OP_WRITE)) != 0) {//OP_READ或OP_WRITE事件准备就绪
                         NIOServerCnxn c = (NIOServerCnxn) k.attachment();
