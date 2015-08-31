@@ -167,7 +167,7 @@ public class Util {
         try {
             // including the header and the last / bytes
             // the snapshot should be atleast 10 bytes
-            if (raf.length() < 10) {
+            if (raf.length() < 10) {//快照文件至少10bytes
                 return false;
             }
             raf.seek(raf.length() - 5);
@@ -311,7 +311,7 @@ public class Util {
      * @param prefix files not matching this prefix are assumed to have a
      * version = -1)
      * @param ascending true sorted in ascending order, false results in
-     * descending order
+     * descending order 是否是升序排列
      * @return sorted input files
      */
     public static List<File> sortDataDir(File[] files, String prefix, boolean ascending)

@@ -48,11 +48,13 @@ public class DataNode implements Record {
     Long acl;
 
     /**
+     * 当前节点持久化到磁盘的状态
      * the stat for this node that is persisted to disk.
      */
     public StatPersisted stat;
 
     /**
+     * 当前节点的子节点 节点内容不包含父节点部分
      * the list of children for this node. note that the list of children string
      * does not contain the parent path -- just the last part of the path. This
      * should be synchronized on except deserializing (for speed up issues).

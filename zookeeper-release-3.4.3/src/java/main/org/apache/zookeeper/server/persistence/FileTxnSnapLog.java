@@ -125,6 +125,7 @@ public class FileTxnSnapLog {
      */
     public long restore(DataTree dt, Map<Long, Integer> sessions, 
             PlayBackListener listener) throws IOException {
+    	//从FileSnap中恢复
         snapLog.deserialize(dt, sessions);
         FileTxnLog txnLog = new FileTxnLog(dataDir);
         TxnIterator itr = txnLog.read(dt.lastProcessedZxid+1);
@@ -146,6 +147,7 @@ public class FileTxnSnapLog {
                 highestZxid = hdr.getZxid();
             }
             try {
+            	//单个事务处理
                 processTransaction(hdr,dt,sessions, itr.getTxn());
             } catch(KeeperException.NoNodeException e) {
                throw new IOException("Failed to process transaction type: " +
@@ -170,7 +172,7 @@ public class FileTxnSnapLog {
         throws KeeperException.NoNodeException {
         ProcessTxnResult rc;
         switch (hdr.getType()) {
-        case OpCode.createSession:
+        case OpCode.createSession://创建session
             sessions.put(hdr.getClientId(),
                     ((CreateSessionTxn) txn).getTimeOut());
             if (LOG.isTraceEnabled()) {

@@ -209,6 +209,7 @@ public class ZKDatabase {
      * @throws IOException
      */
     public long loadDataBase() throws IOException {
+    	//load过程中 发起的分布式提议 对于单机版先不考虑
         PlayBackListener listener=new PlayBackListener(){
             public void onTxnLoaded(TxnHeader hdr,Record txn){
                 Request r = new Request(null, 0, hdr.getCxid(),hdr.getType(),
@@ -219,7 +220,7 @@ public class ZKDatabase {
                 addCommittedProposal(r);
             }
         };
-        
+        //加载数据
         long zxid = snapLog.restore(dataTree,sessionsWithTimeouts,listener);
         initialized = true;
         return zxid;

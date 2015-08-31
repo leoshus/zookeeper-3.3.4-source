@@ -140,10 +140,10 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
     @Override
     public void startup(ZooKeeperServer zks) throws IOException,
             InterruptedException {
-        start();
-        zks.startdata();
-        zks.startup();
-        setZooKeeperServer(zks);
+        start();//启动服务端IO主线程
+        zks.startdata();//加载数据到内存数据库  利用snapshot和log文件恢复database和session结构 并生成一个最新的snapshot文件
+        zks.startup();//创建sessionTracker线程并启动  初始化IO请求的处理链并启动这些处理链
+        setZooKeeperServer(zks);//关联ZooKeeperServer到ServerCnxFactory
     }
 
     @Override
@@ -228,11 +228,11 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
                         }
                     } else if ((k.readyOps() & (SelectionKey.OP_READ | SelectionKey.OP_WRITE)) != 0) {//OP_READ或OP_WRITE事件准备就绪
                         NIOServerCnxn c = (NIOServerCnxn) k.attachment();
-                        if((k.readyOps() & SelectionKey.OP_READ) != 0){
-                        	System.out.println("OP_READ---------" + c);
-                        }else if((k.readyOps() & SelectionKey.OP_WRITE) != 0){
-                        	System.out.println("OP_WRITE---------" + c);
-                        }
+//                        if((k.readyOps() & SelectionKey.OP_READ) != 0){
+//                        	System.out.println("OP_READ---------" + c);
+//                        }else if((k.readyOps() & SelectionKey.OP_WRITE) != 0){
+//                        	System.out.println("OP_WRITE---------" + c);
+//                        }
                         c.doIO(k);
                     } else {
                         if (LOG.isDebugEnabled()) {

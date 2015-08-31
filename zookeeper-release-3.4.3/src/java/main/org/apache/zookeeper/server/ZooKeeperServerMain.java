@@ -77,12 +77,13 @@ public class ZooKeeperServerMain {
         }
 
         ServerConfig config = new ServerConfig();
+        //解析配置文件zoo.cfg
         if (args.length == 1) {
             config.parse(args[0]);
         } else {
             config.parse(args);
         }
-
+        //启动服务端
         runFromConfig(config);
     }
 
@@ -99,18 +100,21 @@ public class ZooKeeperServerMain {
             // run() in this thread.
             // create a file logger url from the command line args
             ZooKeeperServer zkServer = new ZooKeeperServer();
-
+            //log和data文件
             FileTxnSnapLog ftxn = new FileTxnSnapLog(new
                    File(config.dataLogDir), new File(config.dataDir));
             zkServer.setTxnLogFactory(ftxn);
             zkServer.setTickTime(config.tickTime);
             zkServer.setMinSessionTimeout(config.minSessionTimeout);
             zkServer.setMaxSessionTimeout(config.maxSessionTimeout);
+            //构造连接工程   默认为NIOServerCnxnFactory
             cnxnFactory = ServerCnxnFactory.createFactory();
+            //初始化主线程 打开selector并bind端口 打开NIO的OP_ACCEPT通知
             cnxnFactory.configure(config.getClientPortAddress(),
                     config.getMaxClientCnxns());
+            //生成最新的snapshot文件,启动IO主线程  从snapshot文件和log文件中恢复内存database结构和session结构
             cnxnFactory.startup(zkServer);
-            cnxnFactory.join();
+            cnxnFactory.join();//等待之前启动的线程结束
             if (zkServer.isRunning()) {
                 zkServer.shutdown();
             }

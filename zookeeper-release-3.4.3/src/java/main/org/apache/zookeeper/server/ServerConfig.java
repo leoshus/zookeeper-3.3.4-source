@@ -80,6 +80,7 @@ public class ServerConfig {
 
         // let qpconfig parse the file and then pull the stuff we are
         // interested in
+        //将感兴趣的参数赋值到ServerConfig
         readFrom(config);
     }
 
@@ -89,12 +90,12 @@ public class ServerConfig {
      */
     public void readFrom(QuorumPeerConfig config) {
       clientPortAddress = config.getClientPortAddress();
-      dataDir = config.getDataDir();
-      dataLogDir = config.getDataLogDir();
-      tickTime = config.getTickTime();
-      maxClientCnxns = config.getMaxClientCnxns();
-      minSessionTimeout = config.getMinSessionTimeout();
-      maxSessionTimeout = config.getMaxSessionTimeout();
+      dataDir = config.getDataDir();//数据文件路径
+      dataLogDir = config.getDataLogDir();//事务日志路径
+      tickTime = config.getTickTime();//心跳时间
+      maxClientCnxns = config.getMaxClientCnxns();//客户端最大并发数
+      minSessionTimeout = config.getMinSessionTimeout();//最小会话超时时间
+      maxSessionTimeout = config.getMaxSessionTimeout();//最大会话超时时间
     }
 
     public InetSocketAddress getClientPortAddress() {

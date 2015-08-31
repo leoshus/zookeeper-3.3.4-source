@@ -296,8 +296,12 @@ public class DataTree {
     private DataNode quotaDataNode = new DataNode(procDataNode, new byte[0],
             -1L, new StatPersisted());
 
+    /**
+     * DataTree是通过Map实现 key是节点名称 value是DataNode
+     */
     public DataTree() {
         /* Rather than fight it, let root have an alias */
+    	// '/'、'/zookeeper'、'/zookeeper/quota'三个系统节点初始化
         nodes.put("", root);
         nodes.put(rootZookeeper, root);
 
@@ -310,6 +314,7 @@ public class DataTree {
     }
 
     /**
+     * 是否是zookeeper系统节点
      * is the path one of the special paths owned by zookeeper.
      *
      * @param path
@@ -323,7 +328,12 @@ public class DataTree {
         }
         return false;
     }
-
+    /**
+     * 拷贝节点的持久化状态 
+     * @date 2015年8月28日 上午10:55:35
+     * @param from
+     * @param to
+     */
     static public void copyStatPersisted(StatPersisted from, StatPersisted to) {
         to.setAversion(from.getAversion());
         to.setCtime(from.getCtime());
@@ -923,6 +933,8 @@ public class DataTree {
          * case where the snapshot contains data ahead of the zxid associated
          * with the file.
          */
+        //处理完事务后,再修改最新的zxid 如果是先修改zxid再处理事务 修改完zxid后正好异步线程flush datatree
+        //此时由于事务并没有被处理 导致snapshot中的zxid比content新，而restore的时候是从最新zxid+1开始恢复的,从而导致丢失数据
         if (rc.zxid > lastProcessedZxid) {
         	lastProcessedZxid = rc.zxid;
         }

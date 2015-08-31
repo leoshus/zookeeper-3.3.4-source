@@ -406,7 +406,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
     
     @Override
     public synchronized void start() {
-        loadDataBase();//加载内存数据库
+        loadDataBase();//加载内存数据库 恢复DB 从zxid中恢复epoch变量代表投票轮数
         cnxnFactory.start();  //用于与客户端交互      
         startLeaderElection();//根据配置初始化 选举算法
         super.start();
@@ -414,12 +414,12 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
 
 	private void loadDataBase() {
 		try {
-            zkDb.loadDataBase();
+            zkDb.loadDataBase();//从本地文件恢复DB
 
             // load the epochs
             //从最新的zxid恢复epoch变量 zxid64位 前32位为epoch 后32位为zxid
             long lastProcessedZxid = zkDb.getDataTree().lastProcessedZxid;
-    		long epochOfZxid = ZxidUtils.getEpochFromZxid(lastProcessedZxid);
+    		long epochOfZxid = ZxidUtils.getEpochFromZxid(lastProcessedZxid); //zxid >> 32L
             try {
             	currentEpoch = readLongFromFile(CURRENT_EPOCH_FILENAME);
             } catch(FileNotFoundException e) {
@@ -490,7 +490,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
                 throw new RuntimeException(e);
             }
         }
-        this.electionAlg = createElectionAlgorithm(electionType);
+        this.electionAlg = createElectionAlgorithm(electionType);//根据配置 获取选举算法 默认是FastLeaderElection
     }
     
     /**
@@ -669,7 +669,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
              */
             while (running) {
                 switch (getPeerState()) {
-                case LOOKING:
+                case LOOKING://如果状态是LOOKING 则进入选举流程
                     LOG.info("LOOKING");
 
                     if (Boolean.getBoolean("readonlymode.enabled")) {

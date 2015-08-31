@@ -69,6 +69,7 @@ public class FileSnap implements SnapShot {
         // we run through 100 snapshots (not all of them)
         // if we cannot get it running within 100 snapshots
         // we should  give up
+    	//找到前100个有效的snapshot文件 降序排列 最新的文件排在最前面
         List<File> snapList = findNValidSnapshots(100);
         if (snapList.size() == 0) {
             return -1L;
@@ -84,8 +85,8 @@ public class FileSnap implements SnapShot {
                 snapIS = new BufferedInputStream(new FileInputStream(snap));
                 crcIn = new CheckedInputStream(snapIS, new Adler32());
                 InputArchive ia = BinaryInputArchive.getArchive(crcIn);
-                deserialize(dt,sessions, ia);
-                long checkSum = crcIn.getChecksum().getValue();
+                deserialize(dt,sessions, ia);//构建内存database和session结构
+                long checkSum = crcIn.getChecksum().getValue();//校验checkSum
                 long val = ia.readLong("val");
                 if (val != checkSum) {
                     throw new IOException("CRC corruption in snapshot :  " + snap);
@@ -104,6 +105,7 @@ public class FileSnap implements SnapShot {
         if (!foundValid) {
             throw new IOException("Not able to find valid snapshots in " + snapDir);
         }
+        //snapshot文件记录着最新的zxid
         dt.lastProcessedZxid = Util.getZxidFromName(snap.getName(), "snapshot");
         return dt.lastProcessedZxid;
     }
@@ -160,7 +162,7 @@ public class FileSnap implements SnapShot {
             // from the valid snapshot and continue
             // until we find a valid one
             try {
-                if (Util.isValidSnapshot(f)) {
+                if (Util.isValidSnapshot(f)) {//判断当前snapshot文件是否有效
                     list.add(f);
                     count++;
                     if (count == n) {

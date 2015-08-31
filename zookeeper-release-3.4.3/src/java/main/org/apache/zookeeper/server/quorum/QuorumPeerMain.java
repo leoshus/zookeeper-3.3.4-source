@@ -131,26 +131,27 @@ public class QuorumPeerMain {
           //初始化一个ServerSocketChannel处理客户端的请求
           cnxnFactory.configure(config.getClientPortAddress(),
                                 config.getMaxClientCnxns());
-  
+          //zk的逻辑主线程 负责选举和投票等
           quorumPeer = new QuorumPeer();
           quorumPeer.setClientPortAddress(config.getClientPortAddress());
           quorumPeer.setTxnFactory(new FileTxnSnapLog(
                       new File(config.getDataLogDir()),
                       new File(config.getDataDir())));
-          quorumPeer.setQuorumPeers(config.getServers());
+          quorumPeer.setQuorumPeers(config.getServers());//集群服务器IP集合
           quorumPeer.setElectionType(config.getElectionAlg());//electionType==electionAlg
-          quorumPeer.setMyid(config.getServerId());
+          quorumPeer.setMyid(config.getServerId());//本机的集群编号
           quorumPeer.setTickTime(config.getTickTime());
           quorumPeer.setMinSessionTimeout(config.getMinSessionTimeout());
           quorumPeer.setMaxSessionTimeout(config.getMaxSessionTimeout());
           quorumPeer.setInitLimit(config.getInitLimit());
           quorumPeer.setSyncLimit(config.getSyncLimit());
+          //投票决定方式 默认超过半数就通过
           quorumPeer.setQuorumVerifier(config.getQuorumVerifier());
           quorumPeer.setCnxnFactory(cnxnFactory);
           quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));
           quorumPeer.setLearnerType(config.getPeerType());
   
-          quorumPeer.start();
+          quorumPeer.start();//启动主线程
           quorumPeer.join();
       } catch (InterruptedException e) {
           // warn, but generally this is ok

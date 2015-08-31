@@ -256,8 +256,10 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
      *  Restore sessions and data
      */
     public void loadData() throws IOException, InterruptedException {
+    	//执行恢复并返回最新的事务ID
         setZxid(zkDb.loadDataBase());
         // Clean up dead sessions
+        //清理Session
         LinkedList<Long> deadSessions = new LinkedList<Long>();
         for (Long session : zkDb.getSessions()) {
             if (zkDb.getSessionWithTimeOuts().get(session) == null) {
@@ -271,6 +273,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         }
 
         // Make a clean snapshot
+        //生成最新的snapshot文件
         takeSnapshot();
     }
 
@@ -380,6 +383,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     throws IOException, InterruptedException {
         //check to see if zkDb is not null
         if (zkDb == null) {
+        	//初始化database
             zkDb = new ZKDatabase(this.txnLogFactory);
         }  
         if (!zkDb.isInitialized()) {
@@ -391,8 +395,8 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         if (sessionTracker == null) {
             createSessionTracker();
         }
-        startSessionTracker();
-        setupRequestProcessors();
+        startSessionTracker();//启动sessionTracker
+        setupRequestProcessors();//构建请求处理链
 
         registerJMX();
 

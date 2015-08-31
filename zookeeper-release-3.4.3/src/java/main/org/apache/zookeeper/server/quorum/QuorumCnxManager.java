@@ -300,13 +300,13 @@ public class QuorumCnxManager {
         /*
          * If sending message to myself, then simply enqueue it (loopback).
          */
-        if (self.getId() == sid) {
+        if (self.getId() == sid) {//如果是自己不走网络 直接添加到本地接收队列
              b.position(0);
              addToRecvQueue(new Message(b.duplicate(), sid));
             /*
              * Otherwise send to the corresponding thread to send.
              */
-        } else {
+        } else {//否则 先添加到队列然后尝试连接 连接成功则给每台server启动发送和接收线程
              /*
               * Start a new connection if doesn't have one already.
               */
@@ -353,7 +353,7 @@ public class QuorumCnxManager {
                 //创建同步IO连接
                 Socket sock = new Socket();
                 setSockOpts(sock);
-                sock.connect(self.getView().get(sid).electionAddr, cnxTO);
+                sock.connect(self.getView().get(sid).electionAddr, cnxTO);//同步IO连接
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Connected to server " + sid);
                 }
@@ -484,7 +484,7 @@ public class QuorumCnxManager {
                     ss = new ServerSocket();
                     ss.setReuseAddress(true);
                     int port = self.quorumPeers.get(self.getId()).electionAddr
-                            .getPort();
+                            .getPort();//3888选举端口
                     InetSocketAddress addr = new InetSocketAddress(port);
                     LOG.info("My election bind port: " + addr.toString());
                     setName(self.quorumPeers.get(self.getId()).electionAddr
