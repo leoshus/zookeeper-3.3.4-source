@@ -12,3 +12,114 @@ Stat对象
   		dataLength;//数据内容的长度
   		numChildren;//当前节点的子节点个数
   		pzxid;//表示该节点的子节点列表最后一次被修改时的事务ID(只有子节点变更了才会变更pzxid 子节点内容变更不会影响pzxid)
+  		
+请求头：
+
+class RequestHeader{
+
+int xid 客户端请求发起的先后序号 用来保证单个客户端请求的响应顺序
+int type 请求的操作类型 (OpCode.create OpCode.delete OpCode.getData等)
+
+}
+  		
+请求体：
+
+会话创建
+class ConnectionRequest {
+
+int protocolVersion 协议版本号
+long lastZxidSeen 最后一次接收到服务器ZXID
+int timeout 会话超时时间
+long sessionId 会话标识
+buffer passwd 会话密码
+}
+
+获取节点数据
+class GetDataRequest{
+
+String path 数据节点的节点路径
+boolean watch 是否注册了Watcher的标识
+}
+
+更新节点数据
+
+class SetDataRequest{
+
+String path 数据节点的路径
+buffer data 数据内容
+int version  节点数据的期望版本号
+}
+
+
+
+
+响应头：
+class ReplyHeader{
+
+int xid 将请求头中xid原值返回
+long zxid ZooKeeper服务器上当前最新的事务ID
+int err 表示一个错误码 当请求处理过程中出现异常情况时,会在这个错误码中标识出来,常见的包括处理成功(Code.OK:0)、节点不存在(Code.NONODE:101)和没有权限(Code.NOAUTH:102)等,
+         所有错误码 见KeeperException.Code
+}
+
+响应体：
+
+会话创建：
+class ConnectionResponse{
+
+int protoVersion 协议版本号
+int timeout 会话的超时时间
+long sessionId 会话标识
+buffer passwd 会话密码
+}
+
+获取节点数据
+
+class GetDataResponse{
+
+buffer data 数据节点的数据内容data
+Stat stat 节点状态stat
+
+}
+
+更新节点数据
+class SetDataResponse{
+Stat stat 最新的节点状态
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
