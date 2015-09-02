@@ -30,7 +30,8 @@ public class InterProcessMutexTest {
 				Callable<Void> task = new Callable<Void>(){
 					@Override
 					public Void call() throws Exception {
-						CuratorFramework client = CuratorFrameworkFactory.newClient(server.getConnectString(), new ExponentialBackoffRetry(3000, 3));
+//						CuratorFramework client = CuratorFrameworkFactory.newClient(server.getConnectString(), new ExponentialBackoffRetry(3000, 3));
+						CuratorFramework client = CuratorFrameworkFactory.newClient("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183", new ExponentialBackoffRetry(3000, 3));
 						try {
 							client.start();
 							final SharedLockDemo demo = new SharedLockDemo(client, PATH, resource, "testServer-" + index);
@@ -47,6 +48,7 @@ public class InterProcessMutexTest {
 				};
 				service.submit(task);
 			}
+			Thread.sleep(Integer.MAX_VALUE);
 			service.shutdown();
 			service.awaitTermination(10, TimeUnit.SECONDS);
 		} catch (Exception e) {

@@ -14,13 +14,23 @@ import org.junit.Test;
  */
 public class ZkClientDemo {
 
-	private static ZkClient zkclient = null; 
+	private static ZkClient zkclient = null;
+	
+	@Test
+	public void test001(){
+		zkclient = new ZkClient("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183", 50000);
+		int i = 0;
+		while(true){
+			zkclient.createEphemeral("/testzk" + i);//递归创建节点  true表示递归创建节点
+			i++;
+		}
+	}
 	/**
 	 * 使用ZKClient 创建ZooKeeper客户端
 	 */
 	@Test
 	public void test01(){
-		zkclient = new ZkClient("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183", 5000);
+		zkclient = new ZkClient("192.168.183.133:2181,192.168.183.133:2182,192.168.183.133:2183", 50000);
 		System.out.println("ZooKeeper session established.");
 		zkclient.createPersistent("/servers/zk1", true);//递归创建节点  true表示递归创建节点
 	}

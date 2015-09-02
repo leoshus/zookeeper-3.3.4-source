@@ -498,13 +498,13 @@ public class ClientCnxn {
         }
 
        public void queuePacket(Packet packet) {
-          if (wasKilled) {
+          if (wasKilled) {//waitingEvents队列已获取"毒丸"对象
              synchronized (waitingEvents) {
-                if (isRunning) waitingEvents.add(packet);
-                else processEvent(packet);
+                if (isRunning) waitingEvents.add(packet);//waitingEvents队列已空
+                else processEvent(packet);//如果当前waitingEvents队列已空则直接处理  加快响应速度
              }
           } else {
-             waitingEvents.add(packet);
+             waitingEvents.add(packet);//如果当前waitingEvents队列不为空 则进入waitingEvent队列等待EventThread执行
           }
        }
 
@@ -563,11 +563,11 @@ public class ClientCnxn {
                   if (p.replyHeader.getErr() != 0) {
                       rc = p.replyHeader.getErr();
                   }
-                  if (p.cb == null) {
+                  if (p.cb == null) {//如果异步回调为空
                       LOG.warn("Somehow a null cb got to EventThread!");
                   } else if (p.response instanceof ExistsResponse
                           || p.response instanceof SetDataResponse
-                          || p.response instanceof SetACLResponse) {
+                          || p.response instanceof SetACLResponse) {//如果是exists或setData或setACL的异步请求
                       StatCallback cb = (StatCallback) p.cb;
                       if (rc == 0) {
                           if (p.response instanceof ExistsResponse) {
@@ -586,7 +586,7 @@ public class ClientCnxn {
                       } else {
                           cb.processResult(rc, clientPath, p.ctx, null);
                       }
-                  } else if (p.cb instanceof ZooKeeperSaslClient.ServerSaslResponseCallback) {
+                  } else if (p.cb instanceof ZooKeeperSaslClient.ServerSaslResponseCallback) {//若为ServerSaslResponseCallback的异步请求
                       ZooKeeperSaslClient.ServerSaslResponseCallback cb = (ZooKeeperSaslClient.ServerSaslResponseCallback) p.cb;
                       SetSASLResponse rsp = (SetSASLResponse) p.response;
                       // TODO : check rc (== 0, etc) as with other packet types.
@@ -660,15 +660,15 @@ public class ClientCnxn {
 
     private void finishPacket(Packet p) {
         if (p.watchRegistration != null) {
-            p.watchRegistration.register(p.replyHeader.getErr());
+            p.watchRegistration.register(p.replyHeader.getErr());//如果请求成功  则将watchRegistration中的watcher注册到childWatch或dataWatch或existsWatch
         }
 
-        if (p.cb == null) {
+        if (p.cb == null) {//此时为同步操作
             synchronized (p) {
                 p.finished = true;
-                p.notifyAll();
+                p.notifyAll();//同步操作释放阻塞
             }
-        } else {
+        } else {//表示此操作为异步操作
             p.finished = true;
             eventThread.queuePacket(p);
         }
@@ -843,7 +843,7 @@ public class ClientCnxn {
                     lastZxid = replyHdr.getZxid();
                 }
                 if (packet.response != null && replyHdr.getErr() == 0) {
-                    packet.response.deserialize(bbia, "response");
+                    packet.response.deserialize(bbia, "response");//反序列化响应体
                 }
 
                 if (LOG.isDebugEnabled()) {

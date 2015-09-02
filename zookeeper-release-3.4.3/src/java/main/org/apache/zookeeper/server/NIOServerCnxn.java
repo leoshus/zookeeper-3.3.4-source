@@ -942,7 +942,7 @@ public class NIOServerCnxn extends ServerCnxn {
         if (!initialized && checkFourLetterWord(sk, len)) {
             return false;
         }
-        if (len < 0 || len > BinaryInputArchive.maxBuffer) {
+        if (len < 0 || len > BinaryInputArchive.maxBuffer) {//节点数据大小限制
             throw new IOException("Len error " + len);
         }
         if (zkServer == null) {

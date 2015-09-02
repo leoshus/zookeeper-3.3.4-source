@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.zookeeper.AsyncCallback;
+import org.apache.zookeeper.AsyncCallback.DataCallback;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -26,6 +27,56 @@ public class ZookeeperDemo implements Watcher{
 	private final CountDownLatch countdown = new CountDownLatch(1);
 	private ZooKeeper zookeeper = null;
 	private Stat stat = new Stat();
+	@Test
+	public void test001() throws IOException, InterruptedException{
+		final long start = System.currentTimeMillis();
+		System.out.println("start at =" + start);
+		ZooKeeper zookeeper = new ZooKeeper("192.168.183.133:2181",5000,new Watcher(){
+			@Override
+			public void process(WatchedEvent event) {
+				System.out.println("current keeper state is =" + event.getState() + ",eventType = " + event.getType() + ",path=" + event.getPath());
+				if(Event.KeeperState.SyncConnected == event.getState()){
+					countdown.countDown();
+				    System.out.println("cost time =" + ((System.currentTimeMillis() - start)));
+				}
+			}
+		});
+		countdown.await();
+		
+		zookeeper.getData("/sonicery", new Watcher(){
+
+			@Override
+			public void process(WatchedEvent event) {
+				System.out.println("异步获取节点数据操作====" + event.getState() + "," + event.getType());
+			}
+			
+		}, new DataCallback() {
+			@Override
+			public void processResult(int rc, String path, Object ctx, byte[] data,
+					Stat stat) {
+				System.out.println("异步操作状态码=" + rc + ",路径为=" + path + ",数据节点内容为=" + new String(data) + "," + stat.getCzxid());
+			}
+		}, null);
+		
+		try {
+			Stat stat = zookeeper.setData("/sonicery", "异步watcher监听是否有效".getBytes(), -1);
+			System.out.println("更新[/sonicery]成功 " + stat.getCzxid());
+			
+			byte[] result = zookeeper.getData("/test", new Watcher(){
+				@Override
+				public void process(WatchedEvent event) {
+					System.out.println("同步操作获取节点数据" + event.getType() + "," + event.getState());
+				}}, stat);
+			System.out.println("数据节点内容为=" + new String(result) + "," + stat.getCzxid());
+		} catch (KeeperException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			Thread.sleep(Integer.MAX_VALUE);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 	@Test
 	public void test01(){
 		try {

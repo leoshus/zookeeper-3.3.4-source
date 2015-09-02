@@ -2,6 +2,8 @@ package com.sdw.soft.test.curator.nodecache;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.api.CuratorEvent;
+import org.apache.curator.framework.api.CuratorListener;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
@@ -33,10 +35,17 @@ public class CuratorNodeCache {
 					.sessionTimeoutMs(5000)
 					.retryPolicy(new ExponentialBackoffRetry(1000, 3))
 					.build();
+			client.getCuratorListenable().addListener(new CuratorListener(){
+				@Override
+				public void eventReceived(CuratorFramework client,CuratorEvent event) throws Exception {
+					System.out.println("当前通知状态=" + event.getName() + ",当前事件类型是=" + event.getType().name() + ",路径为=" + event.getPath() + "," + event.getWatchedEvent().getState() + "," + event.getWatchedEvent().getType());
+				}
+			});
 			client.start();
 			client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path, "curator node cache".getBytes());
 		    final NodeCache nodecache = new NodeCache(client,path,false);
 		    nodecache.start(true);
+		    
 		    nodecache.getListenable().addListener(new NodeCacheListener(){
 				@Override
 				public void nodeChanged() throws Exception {
@@ -44,11 +53,13 @@ public class CuratorNodeCache {
 				}
 		    });
 		    
-		    client.setData().forPath(path,"update data".getBytes());
+		    client.setData().forPath(path,"update data1".getBytes());
+		    client.setData().forPath(path,"update data2".getBytes());
+		    client.setData().forPath(path,"update data3".getBytes());
 		    Thread.sleep(1000);
 		    client.delete().deletingChildrenIfNeeded().forPath(path);
 		    nodecache.close();
-		    Thread.sleep(Integer.MAX_VALUE);
+//		    Thread.sleep(Integer.MAX_VALUE);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}finally{

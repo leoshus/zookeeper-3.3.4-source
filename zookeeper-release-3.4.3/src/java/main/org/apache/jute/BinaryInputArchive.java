@@ -89,7 +89,7 @@ public class BinaryInputArchive implements InputArchive {
         try {
             return Integer.parseInt(maxBufferString);
         } catch(Exception e) {
-            return 0xfffff;
+            return 0xfffff;//默认为1M
         }
         
     }

@@ -259,7 +259,7 @@ public class ZooKeeper {
             }
         }
         /**
-         * 根据返回值判断当前的watch是否已经被添加
+         * 根据返回值判断当前的watch是否应该被添加
          * Determine whether the watch should be added based on return code.
          * @param rc the result code of the operation that attempted to add the
          * watch on the node
