@@ -739,7 +739,7 @@ public class ClientCnxn {
      * beats. It also spawns the ReadThread.
      */
     class SendThread extends Thread {
-        private long lastPingSentNs;
+        private long lastPingSentNs;//最近一次心跳的时间
         private final ClientCnxnSocket clientCnxnSocket;
         private Random r = new Random(System.nanoTime());        
         private boolean isFirstConnect = true;

@@ -39,18 +39,24 @@ import org.apache.zookeeper.KeeperException.SessionExpiredException;
  * period. Sessions are thus expired in batches made up of sessions that expire
  * in a given interval.
  */
+/**
+ * SessionTracker 是ZooKeeper服务端的会话管理器 负责会话的创建、管理和清理等工作。
+ * @author Administrator
+ *
+ */
 public class SessionTrackerImpl extends Thread implements SessionTracker {
     private static final Logger LOG = LoggerFactory.getLogger(SessionTrackerImpl.class);
 
+    //用于根据SessionID来管理Session实体
     HashMap<Long, SessionImpl> sessionsById = new HashMap<Long, SessionImpl>();
-
+    //用于根据下次会话超时时间点来归档会话,便于进行会话管理和超时检查 已超时时间点作为key  对应的Session实体的HashSet作为value
     HashMap<Long, SessionSet> sessionSets = new HashMap<Long, SessionSet>();
-
+    //用于根据SessionID来管理会话的超时时间。该数据结构与zookeeper内存数据库相连通,会被定期持久化到快照文件中
     ConcurrentHashMap<Long, Integer> sessionsWithTimeout;
     long nextSessionId = 0;
     long nextExpirationTime;
 
-    int expirationInterval;
+    int expirationInterval;//定期的会话超时检查 时间间隔  默认值是tickTime
 
     public static class SessionImpl implements Session {
         SessionImpl(long sessionId, int timeout, long expireTime) {
@@ -61,9 +67,9 @@ public class SessionTrackerImpl extends Thread implements SessionTracker {
         }
 
         final long sessionId;
-        final int timeout;
-        long tickTime;
-        boolean isClosing;
+        final int timeout;//会话超时时间
+        long tickTime;//会话下次超时时间
+        boolean isClosing;//会话是否关闭
 
         Object owner;
 
@@ -72,9 +78,14 @@ public class SessionTrackerImpl extends Thread implements SessionTracker {
         public boolean isClosing() { return isClosing; }
     }
 
+    /**
+     * SessionTracker 的sessionID初始化算法
+     * @param id
+     * @return
+     */
     public static long initializeNextSession(long id) {
         long nextSid = 0;
-        nextSid = (System.currentTimeMillis() << 24) >> 8;
+        nextSid = (System.currentTimeMillis() << 24) >> 8;// 最新已修复为nextSid = (System.currentTimeMillis() << 24) >>> 8
         nextSid =  nextSid | (id <<56);
         return nextSid;
     }
@@ -85,6 +96,14 @@ public class SessionTrackerImpl extends Thread implements SessionTracker {
 
     SessionExpirer expirer;
 
+    /**
+     * 计算会话最近一次可能超时的时间点
+     * ExpirationTime_ = currentTime + SessionTimeOut
+     * ExpirationTime = (Expiration_ /ExpirationInterval + 1) * ExpirationInterval
+     * 
+     * @param time
+     * @return
+     */
     private long roundToInterval(long time) {
         // We give a one interval grace period
         return (time / expirationInterval + 1) * expirationInterval;
@@ -99,7 +118,7 @@ public class SessionTrackerImpl extends Thread implements SessionTracker {
         this.expirationInterval = tickTime;
         this.sessionsWithTimeout = sessionsWithTimeout;
         nextExpirationTime = roundToInterval(System.currentTimeMillis());
-        this.nextSessionId = initializeNextSession(sid);
+        this.nextSessionId = initializeNextSession(sid);//SessionTracker初始化时 会生成一个初始化的sessionID 
         for (Entry<Long, Integer> e : sessionsWithTimeout.entrySet()) {
             addSession(e.getKey(), e.getValue());
         }
@@ -137,6 +156,9 @@ public class SessionTrackerImpl extends Thread implements SessionTracker {
         return sw.toString();
     }
 
+    /**
+     * session超时检查线程
+     */
     @Override
     synchronized public void run() {
         try {
@@ -147,14 +169,14 @@ public class SessionTrackerImpl extends Thread implements SessionTracker {
                     continue;
                 }
                 SessionSet set;
-                set = sessionSets.remove(nextExpirationTime);
+                set = sessionSets.remove(nextExpirationTime);//移除超时的session
                 if (set != null) {
                     for (SessionImpl s : set.sessions) {
                         sessionsById.remove(s.sessionId);
-                        expirer.expire(s);
+                        expirer.expire(s);//对超时线程请求给服务端并响应给客户端
                     }
                 }
-                nextExpirationTime += expirationInterval;
+                nextExpirationTime += expirationInterval;//下次超时时间点
             }
         } catch (InterruptedException e) {
             LOG.error("Unexpected interruption", e);
@@ -162,6 +184,9 @@ public class SessionTrackerImpl extends Thread implements SessionTracker {
         LOG.info("SessionTrackerImpl exited loop!");
     }
 
+    /**
+     * 激活会话
+     */
     synchronized public boolean touchSession(long sessionId, int timeout) {
         if (LOG.isTraceEnabled()) {
             ZooTrace.logTraceMessage(LOG,
@@ -174,21 +199,21 @@ public class SessionTrackerImpl extends Thread implements SessionTracker {
             return false;
         }
         long expireTime = roundToInterval(System.currentTimeMillis() + timeout);
-        if (s.tickTime >= expireTime) {
+        if (s.tickTime >= expireTime) {//没有过期
             // Nothing needs to be done
             return true;
         }
-        SessionSet set = sessionSets.get(s.tickTime);
+        SessionSet set = sessionSets.get(s.tickTime);//从旧的Session超时桶中取出 并移除
         if (set != null) {
             set.sessions.remove(s);
         }
-        s.tickTime = expireTime;
-        set = sessionSets.get(s.tickTime);
+        s.tickTime = expireTime;//新的超时桶的查找key
+        set = sessionSets.get(s.tickTime);//将session加入到新的超时桶中
         if (set == null) {
             set = new SessionSet();
             sessionSets.put(expireTime, set);
         }
-        set.sessions.add(s);
+        set.sessions.add(s);//激活会话 更新对应SessionID的会话超时时间
         return true;
     }
 
@@ -200,7 +225,7 @@ public class SessionTrackerImpl extends Thread implements SessionTracker {
         if (s == null) {
             return;
         }
-        s.isClosing = true;
+        s.isClosing = true;//由于清理session需要时间  所以先将对于session的关闭状态设置为true 就无法处理该session的请求了
     }
 
     synchronized public void removeSession(long sessionId) {
@@ -233,7 +258,7 @@ public class SessionTrackerImpl extends Thread implements SessionTracker {
     }
 
     synchronized public void addSession(long id, int sessionTimeout) {
-        sessionsWithTimeout.put(id, sessionTimeout);
+        sessionsWithTimeout.put(id, sessionTimeout);//将新的session加入到sessionsWithTimeout中
         if (sessionsById.get(id) == null) {
             SessionImpl s = new SessionImpl(id, sessionTimeout, 0);
             sessionsById.put(id, s);
@@ -249,6 +274,7 @@ public class SessionTrackerImpl extends Thread implements SessionTracker {
                         + Long.toHexString(id) + " " + sessionTimeout);
             }
         }
+        //激活会话
         touchSession(id, sessionTimeout);
     }
 

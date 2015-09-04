@@ -449,8 +449,8 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
                 // this request is the last of the session so it should be ok
                 //zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
                 HashSet<String> es = zks.getZKDatabase()
-                        .getEphemerals(request.sessionId);
-                synchronized (zks.outstandingChanges) {
+                        .getEphemerals(request.sessionId);//获取该sessionId对于的所有Ephemeral节点
+                synchronized (zks.outstandingChanges) {//从事务变更队列zks.outstandingChanges处理尚未完成的事务中 删除或创建的节点在本SessionID相关联的节点
                     for (ChangeRecord c : zks.outstandingChanges) {
                         if (c.stat == null) {
                             // Doing a delete
