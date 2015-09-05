@@ -65,7 +65,7 @@ public class ZKDatabase {
      * all these members.
      */
     protected DataTree dataTree;
-    protected ConcurrentHashMap<Long, Integer> sessionsWithTimeouts;
+    protected ConcurrentHashMap<Long, Integer> sessionsWithTimeouts;//会话超时时间记录器
     protected FileTxnSnapLog snapLog;
     protected long minCommittedLog, maxCommittedLog;
     public static final int commitLogCount = 500;
@@ -210,6 +210,10 @@ public class ZKDatabase {
      */
     public long loadDataBase() throws IOException {
     	//load过程中 发起的分布式提议 对于单机版先不考虑
+    	/**
+    	 * PlayBackListener 监听器是用来接收事务应用过程中的回调
+    	 * ZooKeeper数据恢复后期 会有一个事务修订的过程 在这个过程中会回调PlayBackListener监听器来进行对应的数据订正 
+    	 */
         PlayBackListener listener=new PlayBackListener(){
             public void onTxnLoaded(TxnHeader hdr,Record txn){
                 Request r = new Request(null, 0, hdr.getCxid(),hdr.getType(),
@@ -220,13 +224,14 @@ public class ZKDatabase {
                 addCommittedProposal(r);
             }
         };
-        //加载数据
+        //加载数据 处理快照 日志文件
         long zxid = snapLog.restore(dataTree,sessionsWithTimeouts,listener);
         initialized = true;
         return zxid;
     }
     
     /**
+     * 保持最近被提交的事务请求 以便集群间机器进行数据的快速同步
      * maintains a list of last <i>committedLog</i>
      *  or so committed requests. This is used for
      * fast follower synchronization.

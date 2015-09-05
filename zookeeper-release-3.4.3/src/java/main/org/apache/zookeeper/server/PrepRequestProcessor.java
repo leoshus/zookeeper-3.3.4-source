@@ -440,10 +440,10 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
             	//读session超时
                 request.request.rewind();
                 int to = request.request.getInt();
-                //组装具体的Record实现,这里是创建CreateSessionTxn 方便后续processor处理
+                //组装具体的Record实现,这里是创建事务体CreateSessionTxn 方便后续processor处理
                 request.txn = new CreateSessionTxn(to);
                 request.request.rewind();
-                zks.sessionTracker.addSession(request.sessionId, to);
+                zks.sessionTracker.addSession(request.sessionId, to);//完成会话注册与会话激活
                 zks.setOwner(request.sessionId, request.getOwner());
                 break;
             case OpCode.closeSession:

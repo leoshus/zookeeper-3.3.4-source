@@ -236,7 +236,7 @@ public class Leader {
      */
     final static int INFORM = 8;
 
-    ConcurrentMap<Long, Proposal> outstandingProposals = new ConcurrentHashMap<Long, Proposal>();
+    ConcurrentMap<Long, Proposal> outstandingProposals = new ConcurrentHashMap<Long, Proposal>();//投票箱
 
     ConcurrentLinkedQueue<Proposal> toBeApplied = new ConcurrentLinkedQueue<Proposal>();
 
@@ -505,7 +505,7 @@ public class Leader {
             LOG.debug("Count for zxid: 0x{} is {}",
                     Long.toHexString(zxid), p.ackSet.size());
         }
-        if (self.getQuorumVerifier().containsQuorum(p.ackSet)){             
+        if (self.getQuorumVerifier().containsQuorum(p.ackSet)){//如果已经获得半数通过             
             if (zxid != lastCommitted+1) {
                 LOG.warn("Commiting zxid 0x{} from {} not first!",
                         Long.toHexString(zxid), followerAddr);
@@ -513,15 +513,15 @@ public class Leader {
             }
             outstandingProposals.remove(zxid);
             if (p.request != null) {
-                toBeApplied.add(p);
+                toBeApplied.add(p);//提议被提交以前先将其放入toBeApplied队列中去
             }
             // We don't commit the new leader proposal
             if ((zxid & 0xffffffffL) != 0) {
                 if (p.request == null) {
                     LOG.warn("Going to commmit null request for proposal: {}", p);
                 }
-                commit(zxid);
-                inform(p);
+                commit(zxid);//广播给follower提交提议
+                inform(p);//将提议全部内容都广播给observer
                 zk.commitProcessor.commit(p.request);
                 if(pendingSyncs.containsKey(zxid)){
                     for(LearnerSyncRequest r: pendingSyncs.remove(zxid)) {
@@ -635,7 +635,7 @@ public class Leader {
             lastCommitted = zxid;
         }
         QuorumPacket qp = new QuorumPacket(Leader.COMMIT, zxid, null, null);
-        sendPacket(qp);
+        sendPacket(qp);//广播给follower
     }
     
     /**

@@ -128,7 +128,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     static final private long superSecret = 0XB3415C00L;
 
     int requestsInProcess;
-    //事务变更队列
+    //事务变更队列   保存当前ZooKeeper服务器正在进行处理的事务请求 以便ZooKeeper在处理后续请求的过程中需要针对之前的客户端请求的相关处理
     final List<ChangeRecord> outstandingChanges = new ArrayList<ChangeRecord>();
     // this data structure must be accessed under the outstandingChanges lock
     final HashMap<String, ChangeRecord> outstandingChangesForPath =

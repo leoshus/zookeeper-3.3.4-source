@@ -96,6 +96,9 @@ public class FinalRequestProcessor implements RequestProcessor {
             ZooTrace.logRequest(LOG, traceMask, 'E', request, "");
         }
         ProcessTxnResult rc = null;
+        /**
+         * 检查outstandingChanges队列中请求的有效性 若发现这些请求已经落后于当前正在处理的请求 那么直接从outstandingChanges队列中移除
+         */
         synchronized (zks.outstandingChanges) {
             while (!zks.outstandingChanges.isEmpty()
                     && zks.outstandingChanges.get(0).zxid <= request.zxid) {

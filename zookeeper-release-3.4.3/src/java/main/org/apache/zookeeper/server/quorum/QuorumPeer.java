@@ -423,6 +423,9 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
 		try {
             zkDb.loadDataBase();//从本地文件恢复DB
 
+            /**
+             * 校验epoch
+             */
             // load the epochs
             //从最新的zxid恢复epoch变量 zxid64位 前32位为epoch 后32位为zxid
             long lastProcessedZxid = zkDb.getDataTree().lastProcessedZxid;
