@@ -539,6 +539,11 @@ public class Leader {
         }
     }
 
+    /**
+     * ToBeAppliedRequestProcessor有一个toBeApplied队列,专门用来存储那些已经被CommitProcessor处理过的可被提交的Proposal
+     * ToBeAppliedRequestProcessor将此队列中的请求逐个交给FinalRequestProcessor处理器处理 等到FinalRequestProcessor处理完毕之后,再将其从toBeApplied队列中移除
+     * @author Administrator
+     */
     static class ToBeAppliedRequestProcessor implements RequestProcessor {
         private RequestProcessor next;
 

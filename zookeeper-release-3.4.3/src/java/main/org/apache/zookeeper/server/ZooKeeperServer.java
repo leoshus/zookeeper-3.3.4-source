@@ -150,6 +150,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
      * @throws IOException
      */
     public ZooKeeperServer() {
+    	//ZooKeeper服务器运行时的统计器 包含最基本的运行时信息
         serverStats = new ServerStats(this);
     }
     
@@ -400,6 +401,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
             createSessionTracker();
         }
         startSessionTracker();//启动sessionTracker
+        //初始化Zookeeper请求处理链
         setupRequestProcessors();//构建请求处理链
 
         registerJMX();

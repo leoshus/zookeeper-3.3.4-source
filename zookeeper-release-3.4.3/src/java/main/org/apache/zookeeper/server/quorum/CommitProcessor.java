@@ -32,6 +32,11 @@ import org.apache.zookeeper.server.RequestProcessor;
  * locally submitted requests. The trick is that locally submitted requests that
  * change the state of the system will come back as incoming committed requests,
  * so we need to match them up.
+ * 
+ * 事务提交处理器
+ * 1、对于非事务请求,该处理器会直接将其交付给下一级的处理器进行处理
+ * 2、对于事务请求,该处理器会等待集群内针对Proposal的投票直到该Proposal可被提交。
+ *    利用CommitProcessor处理器,每个服务器都可以很好地控制对事务请求的顺序处理
  */
 public class CommitProcessor extends Thread implements RequestProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(CommitProcessor.class);

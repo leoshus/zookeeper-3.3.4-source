@@ -52,6 +52,11 @@ import org.slf4j.LoggerFactory;
  * There will be an instance of this class created by the Leader for each
  * learner. All communication with a learner is handled by this
  * class.
+ * 为了保持整个集群内部的实时通讯,同时也是为了确保可以扣工资所有的Follower/Observer服务器
+ * Leader服务器与每个Follower/Observer服务器都建立一个TCP长连接 同时也会为每个Follower/Observer服务器创建一个名为LearnerHandler的实体
+ * 
+ * LearnerHandler即 Zookeeper集群中Leader服务器的管理器
+ * 负责Follower/Observer服务器和Leader服务器之间的一系列网络通信,包括数据同步、请求转发和Proposal提议的投票等。Leader服务器中保存了所有的Follower/Observer对应的LeaderHandler
  */
 public class LearnerHandler extends Thread {
     private static final Logger LOG = LoggerFactory.getLogger(LearnerHandler.class);

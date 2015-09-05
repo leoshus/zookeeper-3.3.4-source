@@ -58,7 +58,11 @@ import org.slf4j.LoggerFactory;
  * when consolidating peer communication. This is to be verified, though.
  * 
  */
-
+/**
+ * leader选举需要的网络I/O层
+ * @author Administrator
+ *
+ */
 public class QuorumCnxManager {
     private static final Logger LOG = LoggerFactory.getLogger(QuorumCnxManager.class);
 
@@ -97,14 +101,14 @@ public class QuorumCnxManager {
     /*
      * Mapping from Peer to Thread number
      */
-    final ConcurrentHashMap<Long, SendWorker> senderWorkerMap;
-    final ConcurrentHashMap<Long, ArrayBlockingQueue<ByteBuffer>> queueSendMap;
-    final ConcurrentHashMap<Long, ByteBuffer> lastMessageSent;
+    final ConcurrentHashMap<Long, SendWorker> senderWorkerMap;//发送器集合  每个SendWorker消息发送器对应一台远程ZooKeeper服务器,负责消息的发送。
+    final ConcurrentHashMap<Long, ArrayBlockingQueue<ByteBuffer>> queueSendMap;//待发送给其他选举服务器的消息队列  key 为SID
+    final ConcurrentHashMap<Long, ByteBuffer> lastMessageSent;//最近发送过的消息  集合中 为每个SID保留最近发送过的一个消息
 
     /*
      * Reception queue
      */
-    public final ArrayBlockingQueue<Message> recvQueue;
+    public final ArrayBlockingQueue<Message> recvQueue;//接收到的投票消息队列
     /*
      * Object to synchronize access to recvQueue
      */
@@ -219,6 +223,8 @@ public class QuorumCnxManager {
     
     
     /**
+     * 
+     * 只允许SID大的服务器主动和其他服务器建立连接,否则断开连接
      * If this server receives a connection request, then it gives up on the new
      * connection if it wins. Notice that it checks whether it has a connection
      * to this server already or not. If it does, then it sends the smallest
@@ -264,7 +270,7 @@ public class QuorumCnxManager {
              */
             LOG.debug("Create new connection to server: " + sid);
             closeSocket(sock);
-            connectOne(sid);
+            connectOne(sid);//主动连接
 
             // Otherwise start worker threads to receive data.
         } else {//如果对方id比我大，允许连接，并初始化单独的IO线程  
@@ -324,7 +330,7 @@ public class QuorumCnxManager {
                      LOG.error("No queue for server " + sid);
                  }
              }
-             connectOne(sid);
+             connectOne(sid);//尝试连接sid服务器  连接成功则启动对应的SendWorker和RecvWorker线程 发送和接收消息
                 
         }
     }
@@ -467,6 +473,7 @@ public class QuorumCnxManager {
     }
 
     /**
+     * leader选举端口监听器 等待其他服务器创建连接
      * Thread to listen on some port
      */
     public class Listener extends Thread {
@@ -647,6 +654,10 @@ public class QuorumCnxManager {
                  * stale message, we should send the message in the send queue.
                  */
                 ArrayBlockingQueue<ByteBuffer> bq = queueSendMap.get(sid);
+                /**
+                 * ZooKeeper一旦发现针对当前远程服务器的消息发送队列为空
+                 * 则从lastMessageSent中取出一个最近发送过的消息来进行再次发送
+                 */
                 if (bq == null || isSendQueueEmpty(bq)) {
                    ByteBuffer b = lastMessageSent.get(sid);
                    if (b != null) {

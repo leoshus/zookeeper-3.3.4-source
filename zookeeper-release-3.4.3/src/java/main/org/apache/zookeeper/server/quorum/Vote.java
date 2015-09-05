@@ -24,11 +24,11 @@ import org.apache.zookeeper.server.quorum.QuorumPeer.ServerState;
 public class Vote {
     
     public Vote(long id, long zxid) {
-        this.id = id;
-        this.zxid = zxid;
-        this.electionEpoch = -1;
-        this.peerEpoch = -1;
-        this.state = ServerState.LOOKING;
+        this.id = id;//被选举的Leader的SID值
+        this.zxid = zxid;//被选举的Leader的事务ID
+        this.electionEpoch = -1;//逻辑时钟 用来判断多个投票是否在同一轮选举周期中。 该值在服务端是一个自增序列。每次进入新一轮的投票选举后,都会对该值进行加一操作
+        this.peerEpoch = -1;//被选举的Leader的epoch
+        this.state = ServerState.LOOKING;//当前服务器状态
     }
     
     public Vote(long id, long zxid, long peerEpoch) {

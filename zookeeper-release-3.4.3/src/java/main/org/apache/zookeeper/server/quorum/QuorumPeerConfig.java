@@ -135,9 +135,9 @@ public class QuorumPeerConfig {
         for (Entry<Object, Object> entry : zkProp.entrySet()) {
             String key = entry.getKey().toString().trim();
             String value = entry.getValue().toString().trim();
-            if (key.equals("dataDir")) {//数据文件保存路径  用于存储内存数据快照的文件路径 同时用于集群的myid文件也位于该路径下
+            if (key.equals("dataDir")) {//snapshot快照数据文件保存路径  用于存储内存数据快照的文件路径 同时用于集群的myid文件也位于该路径下
                 dataDir = value;
-            } else if (key.equals("dataLogDir")) {//日志文件保存路径
+            } else if (key.equals("dataLogDir")) {//事务日志文件保存路径
                 dataLogDir = value;
             } else if (key.equals("clientPort")) {//服务端监听端口
                 clientPort = Integer.parseInt(value);

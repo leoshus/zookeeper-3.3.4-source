@@ -73,6 +73,9 @@ import org.apache.zookeeper.txn.TxnHeader;
  * state of the system. It counts on ZooKeeperServer to update
  * outstandingRequests, so that it can take into account transactions that are
  * in the queue to be applied when generating a transaction.
+ * 
+ * PrepRequestProcessor能够识别出当前客户端请求是否是事务请求(通常指那些创建节点、更新数据、删除节点以及创建会话等请求)
+ * 对于事务请求PrepRequestProcessor处理器能够对其进行一系列的预处理 诸如,创建请求事务头、事务体、会话检查、ACL检查和版本检查等
  * 主要负责request的header和txn参数 相当于预处理
  */
 public class PrepRequestProcessor extends Thread implements RequestProcessor {
@@ -461,10 +464,10 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
                     }
                     for (String path2Delete : es) {
                         addChangeRecord(new ChangeRecord(request.hdr.getZxid(),
-                                path2Delete, null, 0, null));
+                                path2Delete, null, 0, null));//将待处理事务添加到事务变更队列outstandingChanges中
                     }
 
-                    zks.sessionTracker.setSessionClosing(request.sessionId);
+                    zks.sessionTracker.setSessionClosing(request.sessionId);//修改当前session的isclosing状态为true
                 }
 
                 LOG.info("Processed session termination for sessionid: 0x"
