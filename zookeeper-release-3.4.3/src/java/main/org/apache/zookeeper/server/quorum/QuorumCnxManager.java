@@ -190,7 +190,7 @@ public class QuorumCnxManager {
         }
         
         // If lost the challenge, then drop the new connection
-        if (sid > self.getId()) {//如果对方id比自己大，则关闭连接，这样导致的结果就是大id的server才会去连接小id的server，避免连接浪费  
+        if (sid > self.getId()) { //如果对方sid大于当前的sid则关闭连接  即 只允许大的sid服务器连接小的sid的server 这样保证了每两台选举server维持一个选举连接即可 避免连接浪费  
             LOG.info("Have smaller server identifier, so dropping the " +
                      "connection: (" + sid + ", " + self.getId() + ")");
             closeSocket(sock);

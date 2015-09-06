@@ -763,8 +763,7 @@ public class FastLeaderElection implements Election {
                  * Sends more notifications if haven't received enough.
                  * Otherwise processes new notification.
                  */
-
-                if(n == null){
+                if(n == null){//如果空闲
                     if(manager.haveDelivered()){//判断消息队列中消息是否已发送完  
                         sendNotifications();//发完消息还未选出leader  继续发消息
                     } else {
