@@ -40,6 +40,11 @@ import org.slf4j.LoggerFactory;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
+/**
+ * 
+ * @author Administrator
+ *
+ */
 public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(NIOServerCnxnFactory.class);
 
@@ -142,6 +147,12 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
             InterruptedException {
         start();//启动服务端IO主线程
         zks.startdata();//加载数据到内存数据库  利用snapshot和log文件恢复database和session结构 并生成一个最新的snapshot文件
+        /**
+         * 1、创建并启动会话管理器 并计算一个初始化的SessionID
+         * 2、 初始化Zookeeper请求处理链
+         * 3、注册JMX
+         * 4、将ZookeeperServer的running状态置为true 并且唤醒阻塞的请求
+         */
         zks.startup();//创建sessionTracker线程并启动  初始化IO请求的处理链并启动这些处理链
         setZooKeeperServer(zks);//关联ZooKeeperServer到ServerCnxFactory
     }

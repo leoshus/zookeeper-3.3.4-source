@@ -362,4 +362,39 @@ public class ZookeeperDemo implements Watcher{
 			System.out.println("delete path result =" + rc + "," + path + "," + ctx);
 		}
 	}
+	
+	
+	
+	
+	
+	
+	
+	@Test
+	public void test09(){
+		try {
+			ZooKeeper zookeeper = new ZooKeeper("192.168.183.126:2181,192.168.183.126:2182,192.168.183.126:2183", TIME_OUT, new Watcher(){
+				@Override
+				public void process(WatchedEvent event) {
+					countdown.countDown();
+					System.out.println("异步操作watcher=" + event.getState() + "," + event.getType());
+				}
+				
+			});
+			countdown.await();
+			try {
+				zookeeper.exists("/servers", true);
+			} catch (Exception e) {
+			}
+			//使用异步接口
+			zookeeper.create("/servers", "test app2".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, new ExtStringCallback(), "I am context");
+			
+//			zookeeper.create("/servers", "i am test servers".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+			//删除节点
+//			zookeeper.delete("/servers", -1, new ExtVoidCallback(), "I am context");
+			Thread.sleep(Integer.MAX_VALUE);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
 }

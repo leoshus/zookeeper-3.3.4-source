@@ -18,11 +18,9 @@
 
 package org.apache.zookeeper.server.quorum;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
-import org.apache.jute.BinaryInputArchive;
 import org.apache.jute.Record;
 import org.apache.zookeeper.server.ObserverBean;
 import org.apache.zookeeper.server.Request;
@@ -36,7 +34,13 @@ import org.apache.zookeeper.txn.TxnHeader;
  * and can relieve Followers of some of the connection load. Observers may
  * submit proposals, but do not vote in their acceptance. 
  *
- * See ZOOKEEPER-368 for a discussion of this feature. 
+ * See ZOOKEEPER-368 for a discussion of this feature.
+ * 
+ * Observer是ZooKeeper自3.3.0版本开始引进的一个全新的服务器角色 工作原理上跟follower一致 唯一区别在于Observer不参与任何形式的投票 包括事务请求Proposal的投票和Leader选举投票
+ * Observer服务器只提供非事务服务,通常用于在不影响事务处理能力的前提下提升集群的非事务处理能力
+ * 
+ * Observer的初始化阶段会将SyncRequestProcessor处理器组装上 但实际上Leader服务器不会将事务请求的投票发送给Observer服务器
+ *  
  */
 public class Observer extends Learner{      
 

@@ -128,6 +128,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     static final private long superSecret = 0XB3415C00L;
 
     int requestsInProcess;
+    //事务变更队列   保存当前ZooKeeper服务器正在进行处理的事务请求 以便ZooKeeper在处理后续请求的过程中需要针对之前的客户端请求的相关处理
     final List<ChangeRecord> outstandingChanges = new ArrayList<ChangeRecord>();
     // this data structure must be accessed under the outstandingChanges lock
     final HashMap<String, ChangeRecord> outstandingChangesForPath =
@@ -149,6 +150,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
      * @throws IOException
      */
     public ZooKeeperServer() {
+    	//ZooKeeper服务器运行时的统计器 包含最基本的运行时信息
         serverStats = new ServerStats(this);
     }
     
@@ -332,6 +334,9 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         }
     }
 
+    /**
+     * session 过期后想服务端请求处理并返回给客户端
+     */
     public void expire(Session session) {
         long sessionId = session.getSessionId();
         LOG.info("Expiring session 0x" + Long.toHexString(sessionId)
@@ -396,6 +401,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
             createSessionTracker();
         }
         startSessionTracker();//启动sessionTracker
+        //初始化Zookeeper请求处理链
         setupRequestProcessors();//构建请求处理链
 
         registerJMX();
@@ -419,6 +425,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     protected void createSessionTracker() {
+    	//zkDb.getSessionWithTimeOuts()表明 SeesionTrackerImpl中的SessionsWithTimeOut与zookeeperdatabase中的是连通的
         sessionTracker = new SessionTrackerImpl(this, zkDb.getSessionWithTimeOuts(),
                 tickTime, 1);
     }

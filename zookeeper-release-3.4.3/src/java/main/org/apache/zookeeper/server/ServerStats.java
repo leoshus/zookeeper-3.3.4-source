@@ -20,15 +20,16 @@ package org.apache.zookeeper.server;
 
 
 /**
+ * ZooKeeper服务器运行时统计器
  * Basic Server Statistics
  */
 public class ServerStats {
-    private long packetsSent;
-    private long packetsReceived;
-    private long maxLatency;
-    private long minLatency = Long.MAX_VALUE;
-    private long totalLatency = 0;
-    private long count = 0;
+    private long packetsSent;//从ZooKeeper启动开始,或是最近一次重置服务端统计信息以后,服务端向客户端发送响应包次数
+    private long packetsReceived;//从ZooKeeper启动开始,或是最近一次重置服务端统计信息以后,服务端接收的来自客户端的请求包次数
+    private long maxLatency;//从ZooKeeper启动开始,或是最近一次重置服务端统计信息以后,服务端请求处理的最大延时
+    private long minLatency = Long.MAX_VALUE;//从ZooKeeper启动开始,或是最近一次重置服务端统计信息以后,服务端请求处理的最小延时
+    private long totalLatency = 0;//从ZooKeeper启动开始,或是最近一次重置服务端统计信息以后,服务端请求处理的总延时
+    private long count = 0;//从ZooKeeper启动开始,或是最近一次重置服务端统计信息以后,服务端处理客户端请求的总次数
 
     private final Provider provider;
 

@@ -75,6 +75,12 @@ import org.slf4j.LoggerFactory;
  *
  * The request for the current leader will consist solely of an xid: int xid;
  */
+/**
+ * QuorumPeer的核心工作是 不断地检查当前服务器的状态 并作出相应的处理
+ * 正常情况下,ZooKeeper服务器的状态在LOOKING、LEADING和FOLLOWING/OBSERVING之间进行切换 在启动阶段QuorumPeer的初始状态是LOOKING 则开始进行Leader选举
+ * @author Administrator
+ *
+ */
 public class QuorumPeer extends Thread implements QuorumStats.Provider {
     private static final Logger LOG = LoggerFactory.getLogger(QuorumPeer.class);
 
@@ -346,6 +352,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
 
     DatagramSocket udpSocket;
 
+    //当前节点的地址
     private InetSocketAddress myQuorumAddr;
 
     public InetSocketAddress getQuorumAddress(){
@@ -416,6 +423,9 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
 		try {
             zkDb.loadDataBase();//从本地文件恢复DB
 
+            /**
+             * 校验epoch
+             */
             // load the epochs
             //从最新的zxid恢复epoch变量 zxid64位 前32位为epoch 后32位为zxid
             long lastProcessedZxid = zkDb.getDataTree().lastProcessedZxid;
@@ -561,6 +571,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
     }
      
     protected Leader makeLeader(FileTxnSnapLog logFactory) throws IOException {
+    	//初始化Leader对象 并打开2888端口监听
         return new Leader(this, new LeaderZooKeeperServer(logFactory,
                 this,new ZooKeeperServer.BasicDataTreeBuilder(), this.zkDb));
     }
@@ -672,7 +683,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
                 case LOOKING://如果状态是LOOKING 则进入选举流程
                     LOG.info("LOOKING");
 
-                    if (Boolean.getBoolean("readonlymode.enabled")) {
+                    if (Boolean.getBoolean("readonlymode.enabled")) {//若readOnlymode开启
                         LOG.info("Attempting to start ReadOnlyZooKeeperServer");
 
                         // Create read-only server but don't start it immediately
@@ -715,7 +726,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
                             roZkMgr.interrupt();
                             roZk.shutdown();
                         }
-                    } else {
+                    } else {//若未开启 readOnly模式(readonlymode.enabled)
                         try {
                             setCurrentVote(makeLEStrategy().lookForLeader());
                         } catch (Exception e) {
@@ -756,7 +767,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
                     LOG.info("LEADING");
                     try {
                     	//初始化leader对象
-                        setLeader(makeLeader(logFactory));
+                        setLeader(makeLeader(logFactory));//初始化LeaderZooKeeperServer并与Leader对象关联
                         leader.lead();//线程在这里阻塞
                         setLeader(null);
                     } catch (Exception e) {

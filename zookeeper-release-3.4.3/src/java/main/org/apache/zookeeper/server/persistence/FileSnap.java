@@ -70,6 +70,9 @@ public class FileSnap implements SnapShot {
         // if we cannot get it running within 100 snapshots
         // we should  give up
     	//找到前100个有效的snapshot文件 降序排列 最新的文件排在最前面
+    	/**
+    	 * 取出100个文件进行解析 只有最近的文件无法解析时才会逐个尝试解析 否则只解析最近的一个文件
+    	 */
         List<File> snapList = findNValidSnapshots(100);
         if (snapList.size() == 0) {
             return -1L;

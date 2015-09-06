@@ -28,6 +28,9 @@ import org.apache.zookeeper.server.RequestProcessor;
 /**
  * This is a very simple RequestProcessor that simply forwards a request from a
  * previous stage to the leader as an ACK.
+ * 
+ * Leader服务器特有的处理器 主要负责在SyncRequestProcessor处理器完成事务日志记录后,向Proposal的投票收集器发送ACK反馈
+ * 以通知投票收集器当前服务器已经完成了对该Proposal的事务日志记录
  */
 class AckRequestProcessor implements RequestProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(AckRequestProcessor.class);
@@ -43,7 +46,7 @@ class AckRequestProcessor implements RequestProcessor {
     public void processRequest(Request request) {
         QuorumPeer self = leader.self;
         if(self != null)
-            leader.processAck(self.getId(), request.zxid, null);
+            leader.processAck(self.getId(), request.zxid, null);//向Leader服务器发送ACK消息
         else
             LOG.error("Null QuorumPeer");
     }

@@ -60,13 +60,13 @@ public class DatadirCleanupManager {
      * Constructor of DatadirCleanupManager. It takes the parameters to schedule
      * the purge task.
      * 
-     * @param snapDir
+     * @param snapDir  snapshot文件路径
      *            snapshot directory
-     * @param dataLogDir
+     * @param dataLogDir 事务日志文件路径
      *            transaction log directory
-     * @param snapRetainCount
+     * @param snapRetainCount snapshot文件清理后保留文件数
      *            number of snapshots to be retained after purge
-     * @param purgeInterval
+     * @param purgeInterval 每小时的清理间隔
      *            purge interval in hours
      */
     public DatadirCleanupManager(String snapDir, String dataLogDir, int snapRetainCount,
@@ -92,7 +92,7 @@ public class DatadirCleanupManager {
      * @see PurgeTxnLog#purge(File, File, int)
      */
     public void start() {
-        if (PurgeTaskStatus.STARTED == purgeTaskStatus) {
+        if (PurgeTaskStatus.STARTED == purgeTaskStatus) {//清理任务是否已经启动
             LOG.warn("Purge task is already running.");
             return;
         }

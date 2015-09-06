@@ -32,6 +32,11 @@ import org.apache.zookeeper.server.RequestProcessor;
  * locally submitted requests. The trick is that locally submitted requests that
  * change the state of the system will come back as incoming committed requests,
  * so we need to match them up.
+ * 
+ * 事务提交处理器
+ * 1、对于非事务请求,该处理器会直接将其交付给下一级的处理器进行处理
+ * 2、对于事务请求,该处理器会等待集群内针对Proposal的投票直到该Proposal可被提交。
+ *    利用CommitProcessor处理器,每个服务器都可以很好地控制对事务请求的顺序处理
  */
 public class CommitProcessor extends Thread implements RequestProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(CommitProcessor.class);
@@ -64,6 +69,10 @@ public class CommitProcessor extends Thread implements RequestProcessor {
 
     volatile boolean finished = false;
 
+    /**
+     * 处理上一级的processor流转来的请求
+     * 检测queuedRequests队列中已经有新的请求进来 就逐个从队列中取出请求进行处理
+     */
     @Override
     public void run() {
         try {
@@ -93,13 +102,13 @@ public class CommitProcessor extends Thread implements RequestProcessor {
                          */
                         if (nextPending != null
                                 && nextPending.sessionId == r.sessionId
-                                && nextPending.cxid == r.cxid) {
+                                && nextPending.cxid == r.cxid) {//对比之前标记的nextPending和committedRequets队列中的第一个请求是否一致
                             // we want to send our version of the request.
                             // the pointer to the connection in the request
                             nextPending.hdr = r.hdr;
                             nextPending.txn = r.txn;
                             nextPending.zxid = r.zxid;
-                            toProcess.add(nextPending);
+                            toProcess.add(nextPending);//若检查通过 commit流程将该请求放入toProcess队列中 然后交付给下一个请求处理器  FinalRequestProcessor
                             nextPending = null;
                         } else {
                             // this request came from someone else so just
@@ -150,6 +159,10 @@ public class CommitProcessor extends Thread implements RequestProcessor {
         LOG.info("CommitProcessor exited loop!");
     }
 
+    /**
+     * 若提议已经获得半数通过进入请求提交阶段 ZooKeeper会将该请求放入committedRequests队列中同时唤醒commit流程
+     * @param request
+     */
     synchronized public void commit(Request request) {
         if (!finished) {
             if (request == null) {
@@ -172,7 +185,7 @@ public class CommitProcessor extends Thread implements RequestProcessor {
         }
         
         if (!finished) {
-            queuedRequests.add(request);
+            queuedRequests.add(request);//commitPorcessor收到请求不会立即处理 而是先将其放入queuedRequests队列中
             notifyAll();
         }
     }

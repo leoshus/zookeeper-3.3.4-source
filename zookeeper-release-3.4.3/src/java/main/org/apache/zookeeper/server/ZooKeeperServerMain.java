@@ -104,10 +104,10 @@ public class ZooKeeperServerMain {
             FileTxnSnapLog ftxn = new FileTxnSnapLog(new
                    File(config.dataLogDir), new File(config.dataDir));
             zkServer.setTxnLogFactory(ftxn);
-            zkServer.setTickTime(config.tickTime);
+            zkServer.setTickTime(config.tickTime);//设置ZooKeeper服务端的tickTime默认为3000(毫秒) 并作为SessionTrackerImpl中的ExpirationInterval过期检查时间间隔 对应nextExpiration=((currentTime+timeout)/ExpirationInterval + 1) * ExpirationInterval
             zkServer.setMinSessionTimeout(config.minSessionTimeout);
             zkServer.setMaxSessionTimeout(config.maxSessionTimeout);
-            //构造连接工程   默认为NIOServerCnxnFactory
+            //构造连接工程   默认为NIOServerCnxnFactory    3.4.0版本后提供了Netty实现 可通过配置系统属性zookeeper.serverCnxnFactory来指定使用哪种方式
             cnxnFactory = ServerCnxnFactory.createFactory();
             //初始化主线程 打开selector并bind端口 打开NIO的OP_ACCEPT通知
             cnxnFactory.configure(config.getClientPortAddress(),

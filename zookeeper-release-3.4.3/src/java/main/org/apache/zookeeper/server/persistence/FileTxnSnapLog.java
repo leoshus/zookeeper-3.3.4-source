@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * ZooKeeper上层服务器和底层数据存储之间的对接层 提供一系列操作数据文件的接口 包括事务日志文件和快照数据文件
  * This is a helper class 
  * above the implementations 
  * of txnlog and snapshot 
@@ -128,6 +129,7 @@ public class FileTxnSnapLog {
     	//从FileSnap中恢复
         snapLog.deserialize(dt, sessions);
         FileTxnLog txnLog = new FileTxnLog(dataDir);
+        //根据快照文件恢复的dataTree中最近的Zxid 获取该Zxid之后提交的事务来增量更新数据
         TxnIterator itr = txnLog.read(dt.lastProcessedZxid+1);
         long highestZxid = dt.lastProcessedZxid;
         TxnHeader hdr;
@@ -153,6 +155,7 @@ public class FileTxnSnapLog {
                throw new IOException("Failed to process transaction type: " +
                      hdr.getType() + " error: " + e.getMessage(), e);
             }
+            //PlayBackListener回调  将事务转化为Proposal 并保存到ZKDatabase.committedLog中以便Follower进行快速同步
             listener.onTxnLoaded(hdr, itr.getTxn());
             if (!itr.next()) 
                 break;

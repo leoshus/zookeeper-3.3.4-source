@@ -73,6 +73,9 @@ import org.apache.zookeeper.txn.TxnHeader;
  * state of the system. It counts on ZooKeeperServer to update
  * outstandingRequests, so that it can take into account transactions that are
  * in the queue to be applied when generating a transaction.
+ * 
+ * PrepRequestProcessor能够识别出当前客户端请求是否是事务请求(通常指那些创建节点、更新数据、删除节点以及创建会话等请求)
+ * 对于事务请求PrepRequestProcessor处理器能够对其进行一系列的预处理 诸如,创建请求事务头、事务体、会话检查、ACL检查和版本检查等
  * 主要负责request的header和txn参数 相当于预处理
  */
 public class PrepRequestProcessor extends Thread implements RequestProcessor {
@@ -437,10 +440,10 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
             	//读session超时
                 request.request.rewind();
                 int to = request.request.getInt();
-                //组装具体的Record实现,这里是创建CreateSessionTxn 方便后续processor处理
+                //组装具体的Record实现,这里是创建事务体CreateSessionTxn 方便后续processor处理
                 request.txn = new CreateSessionTxn(to);
                 request.request.rewind();
-                zks.sessionTracker.addSession(request.sessionId, to);
+                zks.sessionTracker.addSession(request.sessionId, to);//完成会话注册与会话激活
                 zks.setOwner(request.sessionId, request.getOwner());
                 break;
             case OpCode.closeSession:
@@ -449,8 +452,8 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
                 // this request is the last of the session so it should be ok
                 //zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
                 HashSet<String> es = zks.getZKDatabase()
-                        .getEphemerals(request.sessionId);
-                synchronized (zks.outstandingChanges) {
+                        .getEphemerals(request.sessionId);//获取该sessionId对于的所有Ephemeral节点
+                synchronized (zks.outstandingChanges) {//从事务变更队列zks.outstandingChanges处理尚未完成的事务中 删除或创建的节点在本SessionID相关联的节点
                     for (ChangeRecord c : zks.outstandingChanges) {
                         if (c.stat == null) {
                             // Doing a delete
@@ -461,10 +464,10 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
                     }
                     for (String path2Delete : es) {
                         addChangeRecord(new ChangeRecord(request.hdr.getZxid(),
-                                path2Delete, null, 0, null));
+                                path2Delete, null, 0, null));//将待处理事务添加到事务变更队列outstandingChanges中
                     }
 
-                    zks.sessionTracker.setSessionClosing(request.sessionId);
+                    zks.sessionTracker.setSessionClosing(request.sessionId);//修改当前session的isclosing状态为true
                 }
 
                 LOG.info("Processed session termination for sessionid: 0x"

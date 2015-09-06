@@ -32,6 +32,8 @@ import org.slf4j.LoggerFactory;
  * This RequestProcessor logs requests to disk. It batches the requests to do
  * the io efficiently. The request is not passed to the next RequestProcessor
  * until its log has been synced to disk.
+ * 
+ * 事务日志记录处理器  该处理器主要用来将事务请求记录到事务日志文件中去,同时会触发ZooKeeper进行数据快照。
  */
 public class SyncRequestProcessor extends Thread implements RequestProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(SyncRequestProcessor.class);
