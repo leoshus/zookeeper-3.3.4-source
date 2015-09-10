@@ -1,0 +1,50 @@
+snapshot log存储结构
+header:
+	magic 4个字节 值为 ZKSN的int值 0x 5A 4B 53 4E
+	version 4个字节 默认为2
+	dbid 8个字节 默认为-1
+data：
+	count 4个字节 表示sessionId与timeout对数目
+	id 8个字节 表示sessionId
+	timeout 4个字节表示timeout
+	
+	tree 节点树
+		map 4个字节 ACL映射的个数 
+		递归解析节点node   第一个节点node的路径是"" 即根节点
+			path 
+				len 4个字节
+			node
+				data
+					len 4个字节
+					acl 8个字节
+					statpersisted 状态存储
+						czxid 8个字节
+						mzxid 8个字节
+						ctime 8个字节
+						mtime 8个字节
+						version 4个字节
+						cversion 4个字节
+						aversion 4个字节
+						ephemeralOwner 8个字节
+						pzxid 8个字节
+
+						
+						
+
+log存储结构
+header：
+	magic 4个字节 默认值为ZKLG的int值 0x 5A 4B 4c 47
+	version 4个字节 默认为2
+	dbid 8个字节  默认为0
+data：
+	txtEntry
+		内容长度 4个字节
+		hdr
+		clientId 8个字节
+		cxid 4个字节
+		zxid 8个字节
+		time 8个字节
+		type 操作码 4个字节
+		txn
+			timeout 4个字节
+		EOR 写入一个固定字节作为结尾

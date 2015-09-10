@@ -70,7 +70,7 @@ public class ZKDatabase {
     protected long minCommittedLog, maxCommittedLog;
     public static final int commitLogCount = 500;
     protected static int commitLogBuffer = 700;
-    protected LinkedList<Proposal> committedLog = new LinkedList<Proposal>();
+    protected LinkedList<Proposal> committedLog = new LinkedList<Proposal>();//保存最近提交的事务请求
     protected ReentrantReadWriteLock logLock = new ReentrantReadWriteLock();
     volatile private boolean initialized = false;
     
@@ -221,7 +221,7 @@ public class ZKDatabase {
                 r.txn = txn;
                 r.hdr = hdr;
                 r.zxid = hdr.getZxid();
-                addCommittedProposal(r);
+                addCommittedProposal(r);//将request封装成proposal放到committedlog中
             }
         };
         //加载数据 处理快照 日志文件

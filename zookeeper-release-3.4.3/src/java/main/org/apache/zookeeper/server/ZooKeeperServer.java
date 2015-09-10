@@ -694,6 +694,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     public static int getSnapCount() {
+    	//每进行snapCount次事务日志输出后会触发一次快照(snapshot) 此时ZooKeeper会生成一个snapshot.*同时新建一个事务日志log.*文件 默认值为 100000
         String sc = System.getProperty("zookeeper.snapCount");
         try {
             return Integer.parseInt(sc);

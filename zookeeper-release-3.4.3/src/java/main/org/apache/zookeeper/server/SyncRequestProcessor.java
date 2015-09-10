@@ -50,7 +50,7 @@ public class SyncRequestProcessor extends Thread implements RequestProcessor {
      * disk. Basically this is the list of SyncItems whose callbacks will be
      * invoked after flush returns successfully.
      */
-    private final LinkedList<Request> toFlush = new LinkedList<Request>();
+    private final LinkedList<Request> toFlush = new LinkedList<Request>();//已经被写的事务等待flush同步到磁盘的事务请求队列
     private final Random r = new Random(System.nanoTime());
     /**
      * The number of log entries to log before starting a snapshot
@@ -118,10 +118,10 @@ public class SyncRequestProcessor extends Thread implements RequestProcessor {
                         //如果成功append的request累计数量大于某个值，则执行flush log的操作  
                         //并启动一个线程异步将内存里的Database和session状态写入到snapshot文件，相当于一个checkpoint  
                         //snapCount默认是100000  
-                        if (logCount > (snapCount / 2 + randRoll)) {
+                        if (logCount > (snapCount / 2 + randRoll)) {//每进行snapCount次事务日志输出后会触发一次快照(snapshot) 此时ZooKeeper会生成一个snapshot.*同时新建一个事务日志log.*文件 默认值为 100000
                             randRoll = r.nextInt(snapCount/2);
                             // roll the log
-                            //将内存中的log flush到磁盘  
+                            //将内存中的log flush到磁盘  logStream.flush
                             zks.getZKDatabase().rollLog();
                             // take a snapshot
                             //启动线程异步将内存中的database和sessions状态写入snapshot文件中  
@@ -131,7 +131,7 @@ public class SyncRequestProcessor extends Thread implements RequestProcessor {
                                 snapInProcess = new Thread("Snapshot Thread") {
                                         public void run() {
                                             try {
-                                                zks.takeSnapshot();
+                                                zks.takeSnapshot();//创建快照文件
                                             } catch(Exception e) {
                                                 LOG.warn("Unexpected exception", e);
                                             }

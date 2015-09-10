@@ -1288,6 +1288,12 @@ public class ZooKeeper {
 
         RequestHeader h = new RequestHeader();
         h.setType(ZooDefs.OpCode.setData);
+        /**
+         * 更新数据请求头
+         * path 节点路径
+         * data 更新的数据
+         * version 节点版本
+         */
         SetDataRequest request = new SetDataRequest();
         request.setPath(serverPath);
         request.setData(data);

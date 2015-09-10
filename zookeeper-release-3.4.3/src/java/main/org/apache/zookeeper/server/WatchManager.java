@@ -130,6 +130,7 @@ public class WatchManager {
             //在FinalRequestProcessor.processRequest()的getData等逻辑 是就将ServerCnxn作为服务端的watcher以及节点路径传递给getData方法
             //最终ServerCnxn和数据节点路径都是保持在了WatchManager中的WatchTable和watch2Paths中
             //ServerCnxn默认实现为NIOServerCnxn 也有Netty实现NettyServerCnxn
+            //因此此处是调用了NIOServerCnxn的process方法 将watchedEvent对象包装成WatcherEvent返回给客户端
             w.process(e);
         }
         return watchers;

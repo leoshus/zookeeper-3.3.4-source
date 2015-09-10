@@ -199,6 +199,7 @@ public class Util {
     }
 
     /**
+     * 如果文件剩余空间只剩接近4k的时候扩容该文件占用空间
      * Grows the file to the specified number of bytes. This only happenes if 
      * the current file position is sufficiently close (less than 4K) to end of 
      * file. 

@@ -102,7 +102,7 @@ public class FileTxnLog implements TxnLog {
 
     static {
         LOG = LoggerFactory.getLogger(FileTxnLog.class);
-
+        //预先开辟磁盘空间 用于后续事务日志写入 默认是64M 可通过zookeeper.preAllocSize来修改默认值
         String size = System.getProperty("zookeeper.preAllocSize");
         if (size != null) {
             try {
@@ -180,10 +180,11 @@ public class FileTxnLog implements TxnLog {
     }
     
     /**
+     * 追加一个entry到事务日志里
      * append an entry to the transaction log
-     * @param hdr the header of the transaction
-     * @param txn the transaction part of the entry
-     * returns true iff something appended, otw false 
+     * @param hdr the header of the transaction 事务请求头
+     * @param txn the transaction part of the entry 事务请求的entry部分
+     * returns true iff something appended, otw false  是否追加成功
      */
     public synchronized boolean append(TxnHeader hdr, Record txn)
         throws IOException
@@ -208,11 +209,11 @@ public class FileTxnLog implements TxnLog {
                FileHeader fhdr = new FileHeader(TXNLOG_MAGIC,VERSION, dbId);
                fhdr.serialize(oa, "fileheader");
                // Make sure that the magic number is written before padding.
-               logStream.flush();
+               logStream.flush();//在事务日志文件空间扩充前 保证headerfile已经写入
                currentSize = fos.getChannel().position();
                streamsToFlush.add(fos);
             }
-            padFile(fos);
+            padFile(fos);//扩充事务日志文件占用空间实际扩从后的空间大小为 headerfile(16byte) + preAllocSize
             byte[] buf = Util.marshallTxnEntry(hdr, txn);
             if (buf == null || buf.length == 0) {
                 throw new IOException("Faulty serialization for header " +
@@ -574,7 +575,7 @@ public class FileTxnLog implements TxnLog {
                 inputStream= new PositionInputStream(new BufferedInputStream(new FileInputStream(logFile)));
                 LOG.debug("Created new input stream " + logFile);
                 ia  = BinaryInputArchive.getArchive(inputStream);
-                inStreamCreated(ia,inputStream);
+                inStreamCreated(ia,inputStream);//校验fileheader
                 LOG.debug("Created new input archive " + logFile);
             }
             return ia;

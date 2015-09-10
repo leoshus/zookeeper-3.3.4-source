@@ -114,8 +114,8 @@ public class SerializeUtils {
             Map<Long, Integer> sessions) throws IOException {
         int count = ia.readInt("count");
         while (count > 0) {
-            long id = ia.readLong("id");
-            int to = ia.readInt("timeout");
+            long id = ia.readLong("id");//sessionId 
+            int to = ia.readInt("timeout");//sessionId对应的超时时间
             sessions.put(id, to);
             if (LOG.isTraceEnabled()) {
                 ZooTrace.logTraceMessage(LOG, ZooTrace.SESSION_TRACE_MASK,
@@ -124,9 +124,17 @@ public class SerializeUtils {
             }
             count--;
         }
-        dt.deserialize(ia, "tree");
+        dt.deserialize(ia, "tree");//解析快照中的节点数据
     }
-
+    
+    /**
+     * 将datatree中的节点 以及session序列化
+     * @date 2015年9月10日 上午10:16:31
+     * @param dt
+     * @param oa
+     * @param sessions
+     * @throws IOException
+     */
     public static void serializeSnapshot(DataTree dt,OutputArchive oa,
             Map<Long, Integer> sessions) throws IOException {
         HashMap<Long, Integer> sessSnap = new HashMap<Long, Integer>(sessions);

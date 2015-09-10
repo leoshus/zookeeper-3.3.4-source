@@ -33,6 +33,14 @@ import org.junit.Test;
  */
 public class CuratorDemo {
 
+	@Test
+	public void test001() throws Exception{
+		RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000,3);
+		CuratorFramework client = CuratorFrameworkFactory.newClient("127.0.0.1:2181", retryPolicy);
+		client.start();
+		client.create().withMode(CreateMode.EPHEMERAL).forPath("/haha", "haha".getBytes());
+		Thread.sleep(Integer.MAX_VALUE);
+	}
 	/**
 	 * Curator 创建一个zookeeper客户端
 	 */

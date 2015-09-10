@@ -126,8 +126,9 @@ public class FileTxnSnapLog {
      */
     public long restore(DataTree dt, Map<Long, Integer> sessions, 
             PlayBackListener listener) throws IOException {
-    	//从FileSnap中恢复
+    	//从FileSnap中恢复  先恢复快照里的数据
         snapLog.deserialize(dt, sessions);
+        //接着增量恢复事务日志里的数据
         FileTxnLog txnLog = new FileTxnLog(dataDir);
         //根据快照文件恢复的dataTree中最近的Zxid 获取该Zxid之后提交的事务来增量更新数据
         TxnIterator itr = txnLog.read(dt.lastProcessedZxid+1);
@@ -239,7 +240,7 @@ public class FileTxnSnapLog {
             ConcurrentHashMap<Long, Integer> sessionsWithTimeouts)
         throws IOException {
         long lastZxid = dataTree.lastProcessedZxid;
-        File snapshotFile = new File(snapDir, Util.makeSnapshotName(lastZxid));
+        File snapshotFile = new File(snapDir, Util.makeSnapshotName(lastZxid));//利用当前最近的事务ID作为文件的后缀
         LOG.info("Snapshotting: 0x{} to {}", Long.toHexString(lastZxid),
                 snapshotFile);
         snapLog.serialize(dataTree, sessionsWithTimeouts, snapshotFile);

@@ -982,7 +982,7 @@ public class DataTree {
         // so there is no need for synchronization. The list is not
         // changed here. Only create and delete change the list which
         // are again called from FinalRequestProcessor in sequence.
-        HashSet<String> list = ephemerals.remove(session);
+        HashSet<String> list = ephemerals.remove(session);//干掉此sessionId对应的临时节点
         if (list != null) {
             for (String path : list) {
                 try {
@@ -1135,7 +1135,7 @@ public class DataTree {
         synchronized (node) {
             scount++;
             oa.writeString(pathString, "path");
-            oa.writeRecord(node, "node");
+            oa.writeRecord(node, "node");//将节点内容 ACL信息 以及持久化状态序列化
             Set<String> childs = node.getChildren();
             if (childs != null) {
                 children = childs.toArray(new String[childs.size()]);
@@ -1159,6 +1159,13 @@ public class DataTree {
 
     public boolean initialized = false;
 
+    /**
+     * 解析ACL信息
+     * @date 2015年9月9日 上午10:25:22
+     * @param longKeyMap
+     * @param ia
+     * @throws IOException
+     */
     private void deserializeList(Map<Long, List<ACL>> longKeyMap,
             InputArchive ia) throws IOException {
         int i = ia.readInt("map");
@@ -1198,8 +1205,8 @@ public class DataTree {
 
     public void serialize(OutputArchive oa, String tag) throws IOException {
         scount = 0;
-        serializeList(longKeyMap, oa);
-        serializeNode(oa, new StringBuilder(""));
+        serializeList(longKeyMap, oa);//序列化ACL信息
+        serializeNode(oa, new StringBuilder(""));//序列化节点 包括节点内容、ACL信息以及持久化状态
         // / marks end of stream
         // we need to check if clear had been called in between the snapshot.
         if (root != null) {
@@ -1208,7 +1215,7 @@ public class DataTree {
     }
 
     public void deserialize(InputArchive ia, String tag) throws IOException {
-        deserializeList(longKeyMap, ia);
+        deserializeList(longKeyMap, ia);//解析ACL信息
         nodes.clear();
         String path = ia.readString("path");
         while (!path.equals("/")) {
