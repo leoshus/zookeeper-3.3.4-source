@@ -144,7 +144,7 @@ public class QuorumCnxManager {
         this.recvQueue = new ArrayBlockingQueue<Message>(RECV_CAPACITY);
         this.queueSendMap = new ConcurrentHashMap<Long, ArrayBlockingQueue<ByteBuffer>>();
         this.senderWorkerMap = new ConcurrentHashMap<Long, SendWorker>();
-        this.lastMessageSent = new ConcurrentHashMap<Long, ByteBuffer>();
+        this.lastMessageSent = new ConcurrentHashMap<Long, ByteBuffer>();//最后一次发送的消息
         
         String cnxToValue = System.getProperty("zookeeper.cnxTimeout");
         if(cnxToValue != null){
@@ -238,7 +238,7 @@ public class QuorumCnxManager {
             // Read server id 读取server id
             DataInputStream din = new DataInputStream(sock.getInputStream());
             sid = din.readLong();
-            if (sid == QuorumPeer.OBSERVER_ID) {
+            if (sid == QuorumPeer.OBSERVER_ID) {//如果是observer
                 /*
                  * Choose identifier at random. We need a value to identify
                  * the connection.

@@ -213,7 +213,7 @@ public class FastLeaderElection implements Election {
                          * learner in the future, we'll have to change the
                          * way we check for observers.
                          */
-                        if(!self.getVotingView().containsKey(response.sid)){
+                        if(!self.getVotingView().containsKey(response.sid)){//如果请求来自observer
                             Vote current = self.getCurrentVote();
                             ToSend notmsg = new ToSend(ToSend.mType.notification,
                                     current.getId(),
@@ -293,6 +293,7 @@ public class FastLeaderElection implements Election {
                                  * Send a notification back if the peer that sent this
                                  * message is also looking and its logical clock is
                                  * lagging behind.
+                                 * 如果对法发送的notification也是LOOKING 并且当前的逻辑时钟大于对方的值 则将自己的vote发送给对方
                                  */
                                 if((ackstate == QuorumPeer.ServerState.LOOKING)
                                         && (n.electionEpoch < logicalclock)){
@@ -310,6 +311,7 @@ public class FastLeaderElection implements Election {
                                 /*
                                  * If this server is not looking, but the one that sent the ack
                                  * is looking, then send back what it believes to be the leader.
+                                 * 若对方仍在LOOKING而本机已经结束了LOOKING 则将currentVote发送给对方
                                  */
                                 Vote current = self.getCurrentVote();
                                 if(ackstate == QuorumPeer.ServerState.LOOKING){

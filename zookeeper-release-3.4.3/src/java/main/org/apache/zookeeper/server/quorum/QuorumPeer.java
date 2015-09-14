@@ -596,7 +596,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
             le = new AuthFastLeaderElection(this, true);
             break;
         case 3:
-            qcm = new QuorumCnxManager(this);//leader 选举IO负责类
+            qcm = new QuorumCnxManager(this);//leader 选举IO负责类 并初始化一个Listener线程  用于监听处理选举投票请求
             QuorumCnxManager.Listener listener = qcm.listener;
             if(listener != null){//启动已绑定的选举端口(默认为3888) 等待集群中其他机器连接
                 listener.start();
